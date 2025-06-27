@@ -31,9 +31,9 @@ linters:
     - nolintlint
     - whitespace
     - godot
-    - gofumpt
 
-  disable: []
+  disable:
+    - gofumpt
 
 linters-settings:
   gofmt:

@@ -11,8 +11,7 @@ services:
       - videogrinder-uploads:/app/uploads
       - videogrinder-outputs:/app/outputs
       - videogrinder-temp:/app/temp
-      - /app/bin
-      - /app/.git
+      - air-tmp:/app/tmp
     environment:
       - ENV=development
       - DEBUG=true
@@ -71,6 +70,8 @@ volumes:
   videogrinder-outputs:
     driver: local
   videogrinder-temp:
+    driver: local
+  air-tmp:
     driver: local
 
 networks:

@@ -16,20 +16,23 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 
 ## :rocket: Fase 1 – Tornar a POC um projeto produtivo
 
-### 1.1 - Desenvolvimento e Qualidade de Código
+### 1.1 - Desenvolvimento e Qualidade de Código ✅ **CONCLUÍDA**
 - [x] Setup de `.editorconfig`, linters e boas práticas
 - [x] Melhorar containerização com Docker multistage
 - [x] Configurar linter para compliance com Tech Mandates
-- [ ] Adicionar variáveis de ambiente para configuração
+- [x] Configurar hot reload para desenvolvimento (Air)
+- [x] Implementar Makefile simplificado para comandos essenciais
+- [x] Configurar ambiente de desenvolvimento Docker-first
 
-### 1.2 - Correções Críticas de Segurança
-- [ ] **CRÍTICO**: Corrigir vulnerabilidades de path traversal (G304)
-- [ ] **CRÍTICO**: Corrigir vulnerabilidade de command injection em FFmpeg (G204)
-- [ ] **CRÍTICO**: Corrigir 9 erros não verificados (errcheck)
-- [ ] Implementar validação rigorosa de inputs de arquivos
-- [ ] Adicionar sanitização de nomes de arquivos
-- [ ] Implementar timeouts para operações FFmpeg
-- [ ] Adicionar rate limiting básico
+### 1.2 - Correções Críticas de Segurança ✅ **CONCLUÍDA**
+- [x] **CRÍTICO**: Corrigir vulnerabilidades de path traversal (G304)
+- [x] **CRÍTICO**: Corrigir vulnerabilidade de command injection em FFmpeg (G204)
+- [x] **CRÍTICO**: Corrigir 9 erros não verificados (errcheck)
+- [x] Implementar validação rigorosa de inputs de arquivos
+- [x] Adicionar sanitização de nomes de arquivos
+- [x] Corrigir permissões inseguras de diretório (G301)
+- [x] Refatorar função processVideo para reduzir complexidade ciclomática
+- [x] Implementar funções especializadas para validação e limpeza
 
 ### 1.3 - Observabilidade e Monitoramento
 - [ ] Implementar logging estruturado em JSON
@@ -47,7 +50,8 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Implementar criptografia básica com AWS KMS (LocalStack)
 
 ### 1.5 - Testes e Qualidade
-- [ ] Corrigir issues de pre-alocação de slices (prealloc)
+- [x] Corrigir issues de pre-alocação de slices (prealloc)
+- [x] Implementar validação automatizada com linters de segurança
 - [ ] Cobrir código atual com testes unitários básicos
 - [ ] Cobrir experiência com testes end-to-end (Cypress)
 - [ ] Implementar testes de segurança automatizados
@@ -179,15 +183,17 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 
 ---
 
+### Parking lot - Entender se são necessárias
+- [ ] Adicionar variáveis de ambiente para configuração
+- [ ] Implementar timeouts para operações FFmpeg
+- [ ] Adicionar rate limiting básico
+
+---
+
 ## :warning: Notas Importantes
 
 ### Compliance com Tech Mandates
 Este roadmap foi atualizado após revisão de compliance com nossos [Tech Mandates](./tech-mandates.md). As correções críticas de segurança na **Fase 1.2** são obrigatórias antes de continuar com desenvolvimentos posteriores.
-
-### Prioridades de Execução
-- **Fase 1.2 (Segurança)**: Deve ser executada IMEDIATAMENTE
-- **Fase 1.3 (Observabilidade)**: Alta prioridade para produção
-- **Fase 1.4 (AWS)**: Necessária para compliance com mandates
 
 ---
 

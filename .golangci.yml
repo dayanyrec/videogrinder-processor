@@ -1,0 +1,106 @@
+run:
+  timeout: 5m
+  go: "1.21"
+  modules-download-mode: readonly
+  build-tags: []
+  skip-dirs: []
+  skip-files: []
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - gofmt
+    - goimports
+    - goconst
+    - gocyclo
+    - misspell
+    - unparam
+    - unconvert
+    - gocritic
+    - gocognit
+    - bodyclose
+    - gosec
+    - prealloc
+    - exportloopref
+    - nolintlint
+    - whitespace
+    - godot
+    - gofumpt
+
+  disable: []
+
+linters-settings:
+  gofmt:
+    simplify: true
+
+    goimports:
+    local-prefixes: video-processor
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  gocyclo:
+    min-complexity: 15
+
+  gocognit:
+    min-complexity: 20
+
+  misspell:
+    locale: US
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - whyNoLint
+      - wrapperFunc
+      - dupImport
+      - ifElseChain
+      - octalLiteral
+      - hugeParam
+
+  gosec:
+    severity: medium
+    confidence: medium
+
+  revive:
+    rules:
+      - name: exported
+        disabled: true
+
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - goconst
+    - linters:
+        - staticcheck
+      text: "SA9003:"
+    - linters:
+        - lll
+      source: "^//go:generate "
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true

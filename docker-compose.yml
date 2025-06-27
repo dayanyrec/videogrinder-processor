@@ -1,0 +1,78 @@
+services:
+  videogrinder-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - videogrinder-uploads:/app/uploads
+      - videogrinder-outputs:/app/outputs
+      - videogrinder-temp:/app/temp
+      - /app/bin
+      - /app/.git
+    environment:
+      - ENV=development
+      - DEBUG=true
+      - AWS_REGION=us-east-1
+    networks:
+      - videogrinder-network
+    profiles:
+      - dev
+
+  videogrinder-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "8080:8080"
+    volumes:
+      - videogrinder-uploads:/app/uploads
+      - videogrinder-outputs:/app/outputs
+      - videogrinder-temp:/app/temp
+    environment:
+      - ENV=production
+      - AWS_REGION=us-east-1
+    networks:
+      - videogrinder-network
+    profiles:
+      - prod
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  videogrinder-lint:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - GOPROXY=direct
+      - GOSUMDB=off
+      - CGO_ENABLED=0
+    command: ["sh", "-c", "GOFLAGS='-buildvcs=false' golangci-lint run"]
+    networks:
+      - videogrinder-network
+    profiles:
+      - tools
+
+volumes:
+  videogrinder-uploads:
+    driver: local
+  videogrinder-outputs:
+    driver: local
+  videogrinder-temp:
+    driver: local
+
+networks:
+  videogrinder-network:
+    driver: bridge

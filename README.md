@@ -56,15 +56,42 @@ git clone <url-do-repositorio>
 cd videogrinder-processor
 ```
 
-2. **Build e execute o container:**
+2. **Execute a aplicação (auto-build):**
 ```bash
-docker build -t videogrinder .
-docker run -p 8080:8080 videogrinder
+make run      # Desenvolvimento com hot reload
+make run prod # Produção (para testes)
 ```
 
 3. **Acesse no navegador:**
 ```
 http://localhost:8080
+```
+
+### 🛠️ Comandos Essenciais
+
+```bash
+make run          # Executar aplicação (dev com hot reload)
+make run prod     # Executar em modo produção
+make test         # Executar testes
+make lint         # Verificar qualidade do código
+make logs         # Ver logs da aplicação
+make down         # Parar serviços
+make help         # Ver todos os comandos disponíveis
+```
+
+### 👨‍💻 Fluxo de Desenvolvimento
+
+Para contribuir com o projeto (seguindo nossos [Tech Mandates](./docs/tech-mandates.md)):
+
+```bash
+# 1. Executar aplicação com hot reload (auto-build)
+make run
+
+# 2. Executar testes e verificações antes de commit
+make check    # Executa: format + lint + test
+
+# 3. Parar serviços quando terminar
+make down
 ```
 
 ## 📖 Como Usar
@@ -104,22 +131,33 @@ videogrinder-processor/
 
 ## 🔧 Configuração
 
-### Portas
-- **Porta padrão**: 8080
-- Para alterar a porta, modifique a linha `r.Run(":8080")` no arquivo `main.go`
+### Ambiente de Desenvolvimento
+```bash
+make run      # Executar com hot reload (auto-build)
+make run prod # Executar em modo produção
+make logs     # Ver logs da aplicação
+```
 
-### Extração de Frames
-- **Taxa padrão**: 1 frame por segundo (`fps=1`)
-- Para alterar, modifique o parâmetro `-vf "fps=1"` na função `processVideo()`
+### Configurações Atuais
+- **Porta**: 8080 (configurável via variáveis de ambiente - Fase 1)
+- **Taxa de extração**: 1 frame por segundo (fps=1)  
+- **Formatos suportados**: MP4, AVI, MOV, MKV, WMV, FLV, WebM
 
-### Formatos Suportados
-Os formatos de vídeo são validados na função `isValidVideoFile()`. Para adicionar novos formatos, edite o array `validExts`.
+> ⚠️ **Nota**: Configurações via variáveis de ambiente serão implementadas na Fase 1.4 conforme nosso [roadmap](./docs/roadmap.md).
 
 ## 🐛 Solução de Problemas
 
-### Erro "FFmpeg não encontrado"
-- **Linux/Mac**: `brew install ffmpeg` ou `apt-get install ffmpeg`
-- **Windows**: Baixe o FFmpeg e adicione ao PATH do sistema
+### Aplicação não inicia
+```bash
+make down     # Parar serviços existentes
+make setup    # Reconfigurar ambiente
+make run      # Tentar executar novamente
+```
+
+### Verificar logs da aplicação
+```bash
+make logs     # Ver logs em tempo real
+```
 
 ### Erro de permissão em diretórios
 ```bash
@@ -129,12 +167,19 @@ sudo chmod 755 uploads outputs temp
 ### Vídeo não é processado
 - Verifique se o formato é suportado
 - Confirme se o arquivo não está corrompido
-- Verifique os logs do terminal para erros específicos
+- Execute `make logs` para ver erros específicos
 
 ### Porta 8080 em uso
-- Altere a porta no código ou termine o processo que está usando a porta:
 ```bash
+make down     # Parar todos os serviços do VideoGrinder
+# Ou termine outros processos na porta:
 lsof -ti:8080 | xargs kill -9
+```
+
+### Problemas com Docker
+```bash
+make docker-clean    # Limpar recursos Docker
+make setup          # Recriar ambiente
 ```
 
 ## 🎯 Casos de Uso para Jornalistas
@@ -165,9 +210,11 @@ Este projeto está em constante evolução seguindo um roadmap estruturado que v
 Para detalhes completos sobre as fases, cronograma e entregas, consulte nosso **[Roadmap Detalhado](./docs/roadmap.md)**.
 
 ### Próximas Entregas (Fase 1)
-- [ ] Setup de linters e boas práticas
-- [ ] Melhorar containerização com Docker multistage
+- [x] Setup de linters e boas práticas
+- [x] Melhorar containerização com Docker multistage
+- [ ] **CRÍTICO**: Corrigir vulnerabilidades de segurança (G304, G204, errcheck)
 - [ ] Adicionar variáveis de ambiente para configuração
+- [ ] Implementar logging estruturado em JSON
 - [ ] Implementar testes unitários e end-to-end
 - [ ] Configurar CI/CD com GitHub Actions
 

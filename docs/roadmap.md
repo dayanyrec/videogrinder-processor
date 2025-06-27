@@ -52,7 +52,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 ### 1.5 - Testes e Qualidade
 - [x] Corrigir issues de pre-alocação de slices (prealloc)
 - [x] Implementar validação automatizada com linters de segurança
-- [ ] Cobrir código atual com testes unitários básicos
+- [x] Cobrir código atual com testes unitários básicos
 - [ ] Cobrir experiência com testes end-to-end (Cypress)
 - [ ] Implementar testes de segurança automatizados
 

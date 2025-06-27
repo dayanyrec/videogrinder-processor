@@ -37,11 +37,11 @@ test: ## Run tests
 
 lint: ## Check code quality
 	@echo "🔍 Running linters..."
-	docker-compose --profile tools run --rm videogrinder-lint
+	docker-compose --profile tools run --rm videogrinder-devtools
 
 fmt: ## Format code
 	@echo "🎨 Formatting code..."
-	docker-compose run --rm videogrinder-dev sh -c "gofmt -s -w . && goimports -w ."
+	docker-compose --profile tools run --rm videogrinder-devtools sh -c "gofmt -s -w . && goimports -w ."
 	@echo "✅ Code formatted"
 
 check: fmt lint test ## Run all quality checks

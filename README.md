@@ -7,6 +7,8 @@ O **VideoGrinder** é uma ferramenta desenvolvida especificamente para **jornali
 Esta plataforma permite que os usuários façam upload de vídeos através de uma interface web e recebam um arquivo ZIP contendo todos os frames extraídos em formato PNG, facilitando o processo de seleção de imagens para uso editorial.
 
 > 📋 **Roadmap de Evolução**: Este projeto está em desenvolvimento ativo seguindo nosso [roadmap detalhado](./docs/roadmap.md), que descreve a evolução planejada de monólito para arquitetura de microserviços.
+>
+> 🏛️ **Tech Mandates**: Todas as decisões técnicas seguem nossos rigorosos [Tech Mandates](./docs/tech-mandates.md), garantindo consistência arquitetural e operacional.
 
 ## ✨ Funcionalidades
 
@@ -25,6 +27,21 @@ Esta plataforma permite que os usuários façam upload de vídeos através de um
 - **Frontend**: HTML, CSS e JavaScript (integrado)
 - **Containerização**: Docker
 - **Arquivos**: Manipulação de ZIP nativo
+
+## 🏛️ Tech Mandates
+
+O VideoGrinder segue um conjunto rigoroso de **[Tech Mandates](./docs/tech-mandates.md)** que definem nossa arquitetura e práticas de desenvolvimento:
+
+- **☁️ AWS como cloud provider exclusivo** - Integração nativa com serviços AWS
+- **🏭 Ambiente único de produção** - Desenvolvimento local → Produção direta
+- **🐳 Docker-first development** - Zero dependências locais além do Docker
+- **🚫 Código autoexplicativo** - Sem comentários desnecessários no código
+- **📋 Testes como documentação** - Especificação viva através de testes
+- **🔒 Security by design** - AWS Secrets Manager, IAM, KMS integrados
+- **📊 Observabilidade completa** - CloudWatch, X-Ray para monitoramento
+- **🔧 Infrastructure as Code** - Terraform para toda infraestrutura
+
+> 📖 **Consulte nossos [Tech Mandates completos](./docs/tech-mandates.md)** para entender as diretrizes técnicas que guiam todas as decisões de arquitetura do projeto.
 
 ## 📋 Pré-requisitos
 
@@ -72,16 +89,17 @@ http://localhost:8080
 
 ```
 videogrinder-processor/
-├── main.go           # Aplicação principal
-├── go.mod           # Dependências do Go
-├── go.sum           # Checksums das dependências
-├── Dockerfile       # Configuração do Docker
-├── docs/            # Documentação do projeto
-│   └── roadmap.md   # Roadmap de evolução
-├── uploads/         # Vídeos enviados (temporário)
-├── outputs/         # Arquivos ZIP gerados
-├── temp/            # Arquivos temporários durante processamento
-└── README.md        # Este arquivo
+├── main.go              # Aplicação principal
+├── go.mod              # Dependências do Go
+├── go.sum              # Checksums das dependências
+├── Dockerfile          # Configuração do Docker
+├── docs/               # Documentação do projeto
+│   ├── roadmap.md      # Roadmap de evolução
+│   └── tech-mandates.md # Diretrizes técnicas obrigatórias
+├── uploads/            # Vídeos enviados (temporário)
+├── outputs/            # Arquivos ZIP gerados
+├── temp/               # Arquivos temporários durante processamento
+└── README.md           # Este arquivo
 ```
 
 ## 🔧 Configuração
@@ -155,8 +173,13 @@ Para detalhes completos sobre as fases, cronograma e entregas, consulte nosso **
 
 ## 🤝 Contribuição
 
-Contribuições são bem-vindas! Antes de contribuir, consulte nosso [roadmap](./docs/roadmap.md) para entender a direção do projeto. Sinta-se à vontade para:
+Contribuições são bem-vindas! Antes de contribuir:
 
+1. **📋 Consulte nosso [roadmap](./docs/roadmap.md)** para entender a direção do projeto
+2. **🏛️ Leia nossos [Tech Mandates](./docs/tech-mandates.md)** para seguir nossas diretrizes técnicas
+3. **🐳 Use Docker** para desenvolvimento (conforme mandates)
+
+Sinta-se à vontade para:
 - Reportar bugs
 - Sugerir melhorias
 - Enviar pull requests
@@ -167,8 +190,9 @@ Contribuições são bem-vindas! Antes de contribuir, consulte nosso [roadmap](.
 Para dúvidas ou problemas:
 1. Verifique a seção "Solução de Problemas" 
 2. Consulte nosso [roadmap](./docs/roadmap.md) para entender o status do projeto
-3. Consulte os logs da aplicação
-4. Abra uma issue no repositório
+3. Revise nossos [Tech Mandates](./docs/tech-mandates.md) para questões arquiteturais
+4. Consulte os logs da aplicação
+5. Abra uma issue no repositório
 
 ---
 

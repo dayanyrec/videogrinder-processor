@@ -1,10 +1,12 @@
-# 🎬 VideoGrinder POC
+# 🎬 VideoGrinder
 
 ## Sobre o Projeto
 
-O **VideoGrinder POC** é uma prova de conceito desenvolvida especificamente para **jornalistas** que precisam extrair frames de vídeos para criar conteúdo jornalístico, posts em redes sociais ou materiais de apoio para suas matérias.
+O **VideoGrinder** é uma ferramenta desenvolvida especificamente para **jornalistas** que precisam extrair frames de vídeos para criar conteúdo jornalístico, posts em redes sociais ou materiais de apoio para suas matérias.
 
-Esta ferramenta permite que os usuários façam upload de vídeos através de uma interface web simples e recebam um arquivo ZIP contendo todos os frames extraídos em formato PNG, facilitando o processo de seleção de imagens para uso editorial.
+Esta plataforma permite que os usuários façam upload de vídeos através de uma interface web e recebam um arquivo ZIP contendo todos os frames extraídos em formato PNG, facilitando o processo de seleção de imagens para uso editorial.
+
+> 📋 **Roadmap de Evolução**: Este projeto está em desenvolvimento ativo seguindo nosso [roadmap detalhado](./docs/roadmap.md), que descreve a evolução planejada de monólito para arquitetura de microserviços.
 
 ## ✨ Funcionalidades
 
@@ -34,7 +36,7 @@ Esta ferramenta permite que os usuários façam upload de vídeos através de um
 1. **Clone o repositório:**
 ```bash
 git clone <url-do-repositorio>
-cd videogrinder-poc
+cd videogrinder-processor
 ```
 
 2. **Build e execute o container:**
@@ -69,11 +71,13 @@ http://localhost:8080
 ## 📁 Estrutura do Projeto
 
 ```
-videogrinder-poc/
+videogrinder-processor/
 ├── main.go           # Aplicação principal
 ├── go.mod           # Dependências do Go
 ├── go.sum           # Checksums das dependências
 ├── Dockerfile       # Configuração do Docker
+├── docs/            # Documentação do projeto
+│   └── roadmap.md   # Roadmap de evolução
 ├── uploads/         # Vídeos enviados (temporário)
 ├── outputs/         # Arquivos ZIP gerados
 ├── temp/            # Arquivos temporários durante processamento
@@ -124,32 +128,34 @@ lsof -ti:8080 | xargs kill -9
 - **Redes sociais**: Criar carrosséis de imagens para Instagram/Twitter
 - **Documentação**: Arquivo visual de eventos importantes
 
-## ⚠️ Limitações Conhecidas
+## ⚠️ Limitações Atuais
 
 - O processamento é sequencial (um vídeo por vez)
 - Arquivos muito grandes podem consumir bastante espaço em disco
 - O tempo de processamento é proporcional ao tamanho e duração do vídeo
-- Interface web básica (POC)
+- Interface web básica (será melhorada nas próximas fases)
 
-## 🔮 Melhorias Futuras
+## 🗺️ Roadmap de Evolução
 
-- [ ] Processamento paralelo de múltiplos vídeos
-- [ ] Seleção customizada de taxa de frames (fps)
-- [ ] Preview dos frames antes do download
-- [ ] Autenticação de usuários
-- [ ] API REST completa
-- [ ] Interface mais sofisticada
-- [ ] Suporte a mais formatos de saída
-- [ ] Compressão inteligente de imagens
-- [ ] Integração com serviços de nuvem
+Este projeto está em constante evolução seguindo um roadmap estruturado que visa transformar o VideoGrinder de um monólito em uma arquitetura de microserviços escalável:
 
-## 📄 Licença
+- **Fase 1**: Tornar o projeto produtivo com testes, CI/CD e infraestrutura
+- **Fase 2**: Modularização interna (ainda no monólito)
+- **Fase 3**: Persistência e rastreabilidade com DynamoDB
+- **Fase 4**: Arquitetura de microserviços completa
 
-Este é um projeto de prova de conceito (POC) desenvolvido para fins educacionais e demonstrativos.
+Para detalhes completos sobre as fases, cronograma e entregas, consulte nosso **[Roadmap Detalhado](./docs/roadmap.md)**.
+
+### Próximas Entregas (Fase 1)
+- [ ] Setup de linters e boas práticas
+- [ ] Melhorar containerização com Docker multistage
+- [ ] Adicionar variáveis de ambiente para configuração
+- [ ] Implementar testes unitários e end-to-end
+- [ ] Configurar CI/CD com GitHub Actions
 
 ## 🤝 Contribuição
 
-Como este é um POC, contribuições são bem-vindas! Sinta-se à vontade para:
+Contribuições são bem-vindas! Antes de contribuir, consulte nosso [roadmap](./docs/roadmap.md) para entender a direção do projeto. Sinta-se à vontade para:
 
 - Reportar bugs
 - Sugerir melhorias
@@ -160,5 +166,10 @@ Como este é um POC, contribuições são bem-vindas! Sinta-se à vontade para:
 
 Para dúvidas ou problemas:
 1. Verifique a seção "Solução de Problemas" 
-2. Consulte os logs da aplicação
-3. Abra uma issue no repositório
+2. Consulte nosso [roadmap](./docs/roadmap.md) para entender o status do projeto
+3. Consulte os logs da aplicação
+4. Abra uma issue no repositório
+
+---
+
+**Desenvolvido com ❤️**

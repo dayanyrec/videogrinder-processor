@@ -7,10 +7,15 @@
     "cypress:run": "cypress run",
     "test:e2e": "cypress run",
     "test:e2e:headed": "cypress run --headed",
-    "test:e2e:dev": "cypress open"
+    "test:e2e:dev": "cypress open",
+    "lint:js": "eslint . --ext .js",
+    "lint:js:fix": "eslint . --ext .js --fix",
+    "fmt:js": "eslint . --ext .js --fix"
   },
   "devDependencies": {
-    "cypress": "^13.6.0"
+    "cypress": "^13.6.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-cypress": "^2.15.1"
   },
   "keywords": [
     "video-processing",

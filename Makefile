@@ -1,4 +1,4 @@
-.PHONY: help setup run test test-e2e test-e2e-open lint fmt check logs down docker-clean
+.PHONY: help setup run test test-e2e test-e2e-open lint lint-js fmt fmt-js check logs down docker-clean
 
 DOCKER_IMAGE=videogrinder-processor
 ENV ?= $(word 2,$(MAKECMDGOALS))
@@ -46,14 +46,31 @@ test-e2e-open: ## Open Cypress interactive mode
 	npm install cypress --save-dev
 	npx cypress open
 
-lint: ## Check code quality
-	@echo "🔍 Running linters..."
+lint: ## Check code quality (Go + JS)
+	@echo "🔍 Running Go linters..."
 	docker-compose --profile tools run --rm videogrinder-devtools
+	@echo "🔍 Running JS linters..."
+	npm install
+	npx eslint . --ext .js
 
-fmt: ## Format code
-	@echo "🎨 Formatting code..."
+lint-js: ## Check JavaScript code quality
+	@echo "🔍 Running JS linters..."
+	npm install
+	npx eslint . --ext .js
+
+fmt: ## Format code (Go + JS)
+	@echo "🎨 Formatting Go code..."
 	docker-compose --profile tools run --rm videogrinder-devtools sh -c "gofmt -s -w . && goimports -w ."
+	@echo "🎨 Formatting JS code..."
+	npm install
+	npx eslint . --ext .js --fix
 	@echo "✅ Code formatted"
+
+fmt-js: ## Format JavaScript code
+	@echo "🎨 Formatting JS code..."
+	npm install
+	npx eslint . --ext .js --fix
+	@echo "✅ JS code formatted"
 
 check: fmt lint test ## Run all quality checks
 

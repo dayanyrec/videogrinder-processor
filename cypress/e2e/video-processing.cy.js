@@ -27,30 +27,23 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
 
   describe('Valid Video Upload and Processing', () => {
     it('should successfully upload and process a valid video', () => {
-      // Upload video
       cy.uploadVideo('test-video-valid.mp4')
 
-      // Verify file is selected
       cy.get('input[type="file"]').should(($input) => {
         expect($input[0].files).to.have.length(1)
         expect($input[0].files[0].name).to.eq('test-video-valid.mp4')
       })
 
-      // Submit for processing
       cy.get('button[type="submit"]').click()
 
-      // Wait for processing to start
       cy.get('#loading').should('be.visible')
       cy.get('#loading').should('contain', 'Processando vídeo')
 
-      // Wait for processing to complete (with extended timeout for video processing)
       cy.waitForProcessing(45000)
 
-      // Verify successful processing
       cy.verifyProcessingSuccess()
       cy.get('#result').should('contain', 'frames extraídos')
 
-      // Verify ZIP file was created (check for zip reference or success message)
       cy.get('#result').should(($el) => {
         const text = $el.text()
         expect(text).to.satisfy((str) =>
@@ -60,18 +53,15 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
     })
 
     it('should show processed file in the listing', () => {
-      // First process a video
       cy.uploadVideo('test-video-valid.mp4')
       cy.get('button[type="submit"]').click()
       cy.waitForProcessing(45000)
       cy.verifyProcessingSuccess()
 
-      // Check if file appears in listing
       cy.checkFileListing()
       cy.get('#filesList').should('contain', 'frames_')
       cy.get('#filesList').should('contain', '.zip')
 
-      // Verify download links are present
       cy.get('#filesList a[href*="/download/"]').should('exist')
     })
   })
@@ -86,18 +76,14 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
     })
 
     it('should handle missing file upload', () => {
-      // Try to submit without selecting a file
       cy.get('button[type="submit"]').click()
 
-      // Should either prevent submission or show error
-      // The exact behavior depends on HTML5 validation
       cy.get('input[type="file"]').then(($input) => {
         expect($input[0].validity.valid).to.be.false
       })
     })
 
     it('should handle server errors gracefully', () => {
-      // Stub the upload endpoint to return an error
       cy.intercept('POST', '/upload', {
         statusCode: 500,
         body: { success: false, message: 'Erro interno do servidor' }
@@ -119,17 +105,12 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
 
   describe('File Download', () => {
     it('should allow downloading processed files', () => {
-      // First process a video
       cy.uploadVideo('test-video-valid.mp4')
       cy.get('button[type="submit"]').click()
       cy.waitForProcessing(45000)
       cy.verifyProcessingSuccess()
 
-      // Find and click download link
       cy.get('#filesList a[href*="/download/"]').first().then(($link) => {
-        const fileName = $link.attr('href').split('/download/')[1]
-
-        // Verify download link works (check response)
         cy.request($link.attr('href')).then((response) => {
           expect(response.status).to.eq(200)
           expect(response.headers['content-type']).to.eq('application/zip')
@@ -154,7 +135,6 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
       cy.viewport(1280, 720)
       cy.get('.container').should('be.visible')
 
-      // Test mobile viewport
       cy.viewport(375, 667)
       cy.get('.container').should('be.visible')
       cy.get('input[type="file"]').should('be.visible')
@@ -164,27 +144,22 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
       cy.uploadVideo('test-video-valid.mp4')
       cy.get('button[type="submit"]').click()
 
-      // Verify loading state
       cy.get('#loading').should('be.visible')
       cy.get('#loading').should('contain', 'Processando vídeo')
       cy.get('#loading').should('contain', 'Isso pode levar alguns minutos')
 
-      // Verify loading disappears when done
       cy.waitForProcessing(45000)
       cy.get('#loading').should('not.be.visible')
     })
 
-        it('should update file listing dynamically', () => {
-      // Check initial state
+    it('should update file listing dynamically', () => {
       cy.checkFileListing()
 
-      // Process a video
       cy.uploadVideo('test-video-valid.mp4')
       cy.get('button[type="submit"]').click()
       cy.waitForProcessing(45000)
       cy.verifyProcessingSuccess()
 
-      // Verify file list contains new files
       cy.get('#filesList').should('contain', 'frames_')
       cy.get('#filesList').should('contain', '.zip')
     })
@@ -226,7 +201,6 @@ describe('VideoGrinder - API E2E Tests', () => {
       body: formData,
       failOnStatusCode: false
     }).then((response) => {
-      // Should either process or reject with proper error
       expect([200, 400]).to.include(response.status)
     })
   })

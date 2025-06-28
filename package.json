@@ -1,0 +1,23 @@
+{
+  "name": "videogrinder-processor",
+  "version": "1.0.0",
+  "description": "VideoGrinder - Processor de vídeos para jornalistas",
+  "scripts": {
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "test:e2e": "cypress run",
+    "test:e2e:headed": "cypress run --headed",
+    "test:e2e:dev": "cypress open"
+  },
+  "devDependencies": {
+    "cypress": "^13.6.0"
+  },
+  "keywords": [
+    "video-processing",
+    "ffmpeg",
+    "journalists",
+    "frames-extraction"
+  ],
+  "author": "VideoGrinder Team",
+  "license": "MIT"
+}

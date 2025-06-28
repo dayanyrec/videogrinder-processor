@@ -73,6 +73,11 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
+
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
 
 build-errors.log
 tmp/

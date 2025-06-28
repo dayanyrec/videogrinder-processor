@@ -1,4 +1,4 @@
-.PHONY: help setup run test lint fmt check logs down docker-clean
+.PHONY: help setup run test test-e2e test-e2e-open lint fmt check logs down docker-clean
 
 DOCKER_IMAGE=videogrinder-processor
 ENV ?= $(word 2,$(MAKECMDGOALS))
@@ -31,9 +31,20 @@ run: ## Run application with auto-build (usage: make run [dev|prod])
 	@echo "🚀 Starting application in $(ENV) mode..."
 	docker-compose --profile $(PROFILE) up --build $(SERVICE)
 
-test: ## Run tests
-	@echo "🧪 Running tests..."
+test: ## Run unit tests
+	@echo "🧪 Running unit tests..."
 	docker-compose run --rm videogrinder-dev go test -v ./...
+
+test-e2e: ## Run e2e tests (requires app running)
+	@echo "🎭 Running e2e tests..."
+	@echo "⚠️  Make sure the app is running with 'make run' in another terminal"
+	npm install cypress --save-dev
+	npx cypress run
+
+test-e2e-open: ## Open Cypress interactive mode
+	@echo "🎭 Opening Cypress..."
+	npm install cypress --save-dev
+	npx cypress open
 
 lint: ## Check code quality
 	@echo "🔍 Running linters..."

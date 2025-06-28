@@ -53,7 +53,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [x] Corrigir issues de pre-alocação de slices (prealloc)
 - [x] Implementar validação automatizada com linters de segurança
 - [x] Cobrir código atual com testes unitários básicos
-- [ ] Cobrir experiência com testes end-to-end (Cypress)
+- [x] Cobrir experiência com testes end-to-end (Cypress)
 - [ ] Implementar testes de segurança automatizados
 
 ### 1.6 - Infraestrutura e Deploy

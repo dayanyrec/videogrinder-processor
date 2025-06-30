@@ -15,7 +15,7 @@ O projeto VideoGrinder implementa um **pipeline de qualidade abrangente** usando
 
 2. **🔍 Pipeline de Qualidade** (`.github/workflows/ci-cd.yml`)
    - **Trigger**: Push para `main` + PRs
-   - **Duração**: ~6-8 minutos
+   - **Duração**: ~4-6 minutos (otimizado)
    - **Propósito**: Validação completa da qualidade do código
 
 ## 🔍 Validação de Pull Request
@@ -50,7 +50,7 @@ Build & Teste de Produção 🏗️
     ↓
 Testes End-to-End 🎭
     ↓
-Verificação Abrangente ✅
+Resumo do Pipeline 🎉
 ```
 
 ### Características Principais
@@ -58,7 +58,14 @@ Verificação Abrangente ✅
 - **Build de produção** validado em cada push/PR
 - **Testes E2E reais** com Cypress
 - **Coleta de artefatos** para debugging
-- **Preparado para futura configuração de deploy**
+- **Resumo inteligente** com status detalhado de todos os jobs
+- **Pipeline otimizado** - elimina verificações redundantes
+
+### Otimizações de Performance ⚡
+- **Eliminação de redundâncias**: Removido job `comprehensive-check` que duplicava verificações já executadas
+- **Pipeline summary inteligente**: Novo job `pipeline-summary` que apenas consolida resultados sem re-executar testes
+- **Economia de tempo**: ~3-5 minutos reduzidos por execução
+- **Menor uso de recursos**: GitHub Actions mais eficiente
 
 ## 🔧 Comandos de Desenvolvimento Local
 
@@ -156,8 +163,10 @@ Todo código deve passar por:
 
 ### Performance
 - ⚡ **Cache de layers do Docker** reduz tempo de build
-- 🔄 **Pipeline otimizado** com dependências mínimas
+- 🔄 **Pipeline otimizado** com dependências mínimas e zero redundância
 - 📦 **Cache de dependências** para instalações mais rápidas
+- 🎯 **Jobs paralelos** para máxima eficiência
+- ⏰ **Redução de ~3-5 minutos** por execução com eliminação de verificações duplicadas
 
 ### Segurança
 - 🔒 **Princípio do menor privilégio** para workflows

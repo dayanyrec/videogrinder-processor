@@ -32,10 +32,10 @@ jobs:
     - name: 🔍 Run linting (Go + JS)
       run: make lint
 
-        - name: 🧪 Run unit tests
+    - name: 🧪 Run unit tests
       run: make test
 
-    build-test:
+  build-test:
     name: 🏗️ Build & Production Test
     runs-on: ubuntu-latest
     needs: quality-checks
@@ -117,7 +117,7 @@ jobs:
       if: always()
       run: make down
 
-    comprehensive-check:
+  comprehensive-check:
     name: ✅ Comprehensive Quality Check
     runs-on: ubuntu-latest
     needs: [quality-checks, build-test, e2e-tests]

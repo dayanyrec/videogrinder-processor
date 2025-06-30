@@ -1,4 +1,4 @@
-.PHONY: help setup run test test-e2e test-e2e-open lint lint-js fmt fmt-js check logs down docker-clean
+.PHONY: help setup run test test-e2e test-e2e-open lint lint-js fmt fmt-js check logs down docker-clean ci-validate ci-build ci-test-local
 
 DOCKER_IMAGE=videogrinder-processor
 ENV ?= $(word 2,$(MAKECMDGOALS))
@@ -90,3 +90,31 @@ docker-clean: ## Clean Docker resources
 	@echo "🧹 Cleaning Docker resources..."
 	docker-compose down --volumes --rmi all || true
 	docker system prune -f || true
+
+ci-validate: ## Run CI validation locally (equivalent to PR validation)
+	@echo "🔍 Running CI validation locally..."
+	@echo "📁 Creating directories..."
+	@mkdir -p uploads outputs temp tmp
+	@echo "🎨 Running formatting..."
+	@make fmt
+	@echo "🔍 Running linting..."
+	@make lint
+	@echo "🧪 Running unit tests..."
+	@make test
+	@echo "✅ CI validation completed successfully!"
+
+ci-build: ## Build production image (like CI)
+	@echo "🏗️ Building production image for CI validation..."
+	@make setup prod
+	@echo "✅ Production image built successfully!"
+
+ci-test-local: ## Run complete CI test suite locally
+	@echo "🚀 Running complete CI test suite locally..."
+	@make ci-validate
+	@make ci-build
+	@echo "🎭 Running E2E tests..."
+	@make run dev &
+	@sleep 10
+	@make test-e2e || (make down && exit 1)
+	@make down
+	@echo "🎉 Complete CI test suite passed!"

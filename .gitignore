@@ -84,6 +84,13 @@ cypress/downloads/
 build-errors.log
 tmp/
 
+# CI/CD artifacts
+deployment-info.json
+trivy-results.sarif
+*-report.html
+*-report.json
+*-report.xml
+
 *.bak
 *.backup
 *.orig

@@ -49,18 +49,29 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Migrar armazenamento local para S3 (LocalStack)
 - [ ] Implementar criptografia básica com AWS KMS (LocalStack)
 
-### 1.5 - Testes e Qualidade
+### 1.5 - Testes e Qualidade ✅ **CONCLUÍDA**
 - [x] Corrigir issues de pre-alocação de slices (prealloc)
 - [x] Implementar validação automatizada com linters de segurança
 - [x] Cobrir código atual com testes unitários básicos
 - [x] Cobrir experiência com testes end-to-end (Cypress)
-- [ ] Implementar testes de segurança automatizados
 
-### 1.6 - Infraestrutura e Deploy
-- [ ] Configurar pipeline com GitHub Actions (trunk-based)
-- [ ] Setup de Kubernetes local (Minikube ou K3s)
-- [ ] Setup de Terraform para infraestrutura base
-- [ ] Pipeline de deploy automatizado na AWS
+### 1.6 - Pipeline de Qualidade ✅ **CONCLUÍDA**
+- [x] Configurar pipeline com GitHub Actions (trunk-based)
+- [x] Implementar validação automatizada com Docker multi-stage
+- [x] Configurar validação de PR com testes automatizados
+- [x] Implementar pipeline completo de qualidade de código
+- [x] Configurar Dependabot para atualizações de dependências
+- [x] Documentar comandos Make para validação local
+
+---
+
+### 1.7 - Infraestrutura de Deploy na AWS (Futuro)
+- [ ] Setup de Terraform para infraestrutura AWS
+- [ ] Configurar AWS ECS/Fargate para containers
+- [ ] Pipeline de deploy automatizado para produção
+- [ ] Implementar health checks e monitoring na AWS
+- [ ] Configurar AWS CloudWatch para logs e métricas
+- [ ] Setup de domínio e SSL/TLS
 
 ---
 
@@ -90,6 +101,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Implementar alertas proativos baseados em SLIs/SLOs
 - [ ] Melhorar logs com contexto de requisição
 - [ ] Adicionar dashboards básicos de monitoramento
+- [ ] Implementar testes de segurança automatizados (SAST/DAST)
 
 ---
 

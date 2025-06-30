@@ -6,6 +6,14 @@ ENV := $(if $(ENV),$(ENV),dev)
 PROFILE = $(if $(filter prod,$(ENV)),prod,dev)
 SERVICE = $(if $(filter prod,$(ENV)),videogrinder-prod,videogrinder-dev)
 
+# Detect which Docker Compose command is available
+DOCKER_COMPOSE := $(shell command -v docker-compose 2> /dev/null)
+ifdef DOCKER_COMPOSE
+    COMPOSE_CMD = docker-compose
+else
+    COMPOSE_CMD = docker compose
+endif
+
 %:
 	@:
 
@@ -24,16 +32,16 @@ help: ## Show available commands
 
 setup: ## Configure environment (usage: make setup [dev|prod])
 	@echo "🔧 Setting up $(ENV) environment..."
-	docker-compose build $(SERVICE)
+	$(COMPOSE_CMD) build $(SERVICE)
 	@echo "✅ $(ENV) environment ready"
 
 run: ## Run application with auto-build (usage: make run [dev|prod])
 	@echo "🚀 Starting application in $(ENV) mode..."
-	docker-compose --profile $(PROFILE) up --build $(SERVICE)
+	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(SERVICE)
 
 test: ## Run unit tests
 	@echo "🧪 Running unit tests..."
-	docker-compose run --rm videogrinder-dev go test -v ./...
+	$(COMPOSE_CMD) run --rm videogrinder-dev go test -v ./...
 
 test-e2e: ## Run e2e tests (requires app running)
 	@echo "🎭 Running e2e tests..."
@@ -48,7 +56,7 @@ test-e2e-open: ## Open Cypress interactive mode
 
 lint: ## Check code quality (Go + JS)
 	@echo "🔍 Running Go linters..."
-	docker-compose --profile tools run --rm videogrinder-devtools
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools
 	@echo "🔍 Running JS linters..."
 	npm install
 	npx eslint . --ext .js
@@ -60,7 +68,7 @@ lint-js: ## Check JavaScript code quality
 
 fmt: ## Format code (Go + JS)
 	@echo "🎨 Formatting Go code..."
-	docker-compose --profile tools run --rm videogrinder-devtools sh -c "gofmt -s -w . && goimports -w ."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "gofmt -s -w . && goimports -w ."
 	@echo "🎨 Formatting JS code..."
 	npm install
 	npx eslint . --ext .js --fix
@@ -76,19 +84,19 @@ check: fmt lint test ## Run all quality checks
 
 logs: ## View application logs (usage: make logs [dev|prod])
 	@echo "📋 Showing $(ENV) logs..."
-	docker-compose logs -f $(SERVICE)
+	$(COMPOSE_CMD) logs -f $(SERVICE)
 
 down: ## Stop services (usage: make down [dev|prod|all])
 	@echo "🐳 Stopping $(ENV) services..."
 ifeq ($(ENV),all)
-	docker-compose down
+	$(COMPOSE_CMD) down
 else
-	docker-compose stop $(SERVICE)
+	$(COMPOSE_CMD) stop $(SERVICE)
 endif
 
 docker-clean: ## Clean Docker resources
 	@echo "🧹 Cleaning Docker resources..."
-	docker-compose down --volumes --rmi all || true
+	$(COMPOSE_CMD) down --volumes --rmi all || true
 	docker system prune -f || true
 
 ci-validate: ## Run CI validation locally (equivalent to PR validation)

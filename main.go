@@ -11,21 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"video-processor/internal/models"
+
 	"github.com/gin-gonic/gin"
 )
-
-type VideoRequest struct {
-	VideoPath string `json:"video_path"`
-	OutputDir string `json:"output_dir"`
-}
-
-type ProcessingResult struct {
-	Success    bool     `json:"success"`
-	Message    string   `json:"message"`
-	ZipPath    string   `json:"zip_path,omitempty"`
-	FrameCount int      `json:"frame_count,omitempty"`
-	Images     []string `json:"images,omitempty"`
-}
 
 func main() {
 	createDirs()
@@ -77,7 +66,7 @@ func createDirs() {
 func handleVideoUpload(c *gin.Context) {
 	file, header, err := c.Request.FormFile("video")
 	if err != nil {
-		c.JSON(400, ProcessingResult{
+		c.JSON(400, models.ProcessingResult{
 			Success: false,
 			Message: "Erro ao receber arquivo: " + err.Error(),
 		})
@@ -90,7 +79,7 @@ func handleVideoUpload(c *gin.Context) {
 	}()
 
 	if !isValidVideoFile(header.Filename) {
-		c.JSON(400, ProcessingResult{
+		c.JSON(400, models.ProcessingResult{
 			Success: false,
 			Message: "Formato de arquivo não suportado. Use: mp4, avi, mov, mkv",
 		})
@@ -105,7 +94,7 @@ func handleVideoUpload(c *gin.Context) {
 	uploadsDir, _ := filepath.Abs("uploads")
 	absVideoPath, _ := filepath.Abs(cleanVideoPath)
 	if !strings.HasPrefix(absVideoPath, uploadsDir+string(filepath.Separator)) {
-		c.JSON(400, ProcessingResult{
+		c.JSON(400, models.ProcessingResult{
 			Success: false,
 			Message: "Invalid file path",
 		})
@@ -114,7 +103,7 @@ func handleVideoUpload(c *gin.Context) {
 
 	out, err := os.Create(filepath.Clean(videoPath))
 	if err != nil {
-		c.JSON(500, ProcessingResult{
+		c.JSON(500, models.ProcessingResult{
 			Success: false,
 			Message: "Erro ao salvar arquivo: " + err.Error(),
 		})
@@ -128,7 +117,7 @@ func handleVideoUpload(c *gin.Context) {
 
 	_, err = io.Copy(out, file)
 	if err != nil {
-		c.JSON(500, ProcessingResult{
+		c.JSON(500, models.ProcessingResult{
 			Success: false,
 			Message: "Erro ao salvar arquivo: " + err.Error(),
 		})
@@ -146,29 +135,29 @@ func handleVideoUpload(c *gin.Context) {
 	c.JSON(200, result)
 }
 
-func processVideo(videoPath, timestamp string) ProcessingResult {
+func processVideo(videoPath, timestamp string) models.ProcessingResult {
 	fmt.Printf("Iniciando processamento: %s\n", videoPath)
 
 	if err := validateProcessingInputs(videoPath, timestamp); err != nil {
-		return ProcessingResult{Success: false, Message: err.Error()}
+		return models.ProcessingResult{Success: false, Message: err.Error()}
 	}
 
 	tempDir := filepath.Join("temp", timestamp)
 	if err := setupTempDirectory(tempDir); err != nil {
-		return ProcessingResult{Success: false, Message: err.Error()}
+		return models.ProcessingResult{Success: false, Message: err.Error()}
 	}
 	defer cleanupTempDirectory(tempDir)
 
 	frames, err := extractFrames(videoPath, tempDir)
 	if err != nil {
-		return ProcessingResult{Success: false, Message: err.Error()}
+		return models.ProcessingResult{Success: false, Message: err.Error()}
 	}
 
 	fmt.Printf("📸 Extraídos %d frames\n", len(frames))
 
 	zipPath, err := createFramesZip(frames, timestamp)
 	if err != nil {
-		return ProcessingResult{Success: false, Message: err.Error()}
+		return models.ProcessingResult{Success: false, Message: err.Error()}
 	}
 
 	fmt.Printf("✅ ZIP criado: %s\n", zipPath)
@@ -178,7 +167,7 @@ func processVideo(videoPath, timestamp string) ProcessingResult {
 		imageNames[i] = filepath.Base(frame)
 	}
 
-	return ProcessingResult{
+	return models.ProcessingResult{
 		Success:    true,
 		Message:    fmt.Sprintf("Processamento concluído! %d frames extraídos.", len(frames)),
 		ZipPath:    filepath.Base(zipPath),

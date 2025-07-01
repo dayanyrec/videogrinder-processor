@@ -42,7 +42,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -o videogrinder-processor \
     .
 
-FROM alpine:3.18 AS production
+FROM alpine:3.22 AS production
 
 RUN apk add --no-cache \
     ffmpeg \

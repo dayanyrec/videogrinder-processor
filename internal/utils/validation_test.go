@@ -256,7 +256,6 @@ func TestSetupTempDirectory(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean up before test
 			os.RemoveAll(tt.tempDir)
 			defer os.RemoveAll(tt.tempDir)
 

@@ -73,8 +73,6 @@ func TestVideoService_ProcessVideo_ValidationErrors(t *testing.T) {
 }
 
 func TestVideoService_ProcessVideo_TempDirCreationError(t *testing.T) {
-	// Create a temporary file to use as the "directory" path
-	// This should cause os.MkdirAll to fail since it can't create a directory with the same name as an existing file
 	tempFile, err := os.CreateTemp("", "video_test_file")
 	require.NoError(t, err)
 	defer os.Remove(tempFile.Name())
@@ -83,16 +81,14 @@ func TestVideoService_ProcessVideo_TempDirCreationError(t *testing.T) {
 	cfg := &config.Config{
 		UploadsDir: "uploads",
 		OutputsDir: "outputs",
-		TempDir:    tempFile.Name(), // This should fail because it's a file, not a directory
+		TempDir:    tempFile.Name(),
 	}
 	service := NewVideoService(cfg)
 
 	result := service.ProcessVideo("uploads/test.mp4", "20240101_120000")
 
-	// Should fail due to temp directory creation error
 	assert.False(t, result.Success)
 	assert.NotEmpty(t, result.Message)
-	// The error should contain information about directory creation failure
 	assert.True(t,
 		strings.Contains(result.Message, "erro ao criar diretório temporário") ||
 			strings.Contains(result.Message, "not a directory") ||
@@ -201,7 +197,6 @@ func TestVideoService_createZipFile(t *testing.T) {
 	cfg := &config.Config{}
 	service := NewVideoService(cfg)
 
-	// Create test files
 	testFiles := []string{
 		filepath.Join(tempDir, "frame_001.png"),
 		filepath.Join(tempDir, "frame_002.png"),
@@ -218,7 +213,6 @@ func TestVideoService_createZipFile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.FileExists(t, zipPath)
 
-	// Verify zip file is not empty
 	info, err := os.Stat(zipPath)
 	require.NoError(t, err)
 	assert.Greater(t, info.Size(), int64(0))
@@ -228,8 +222,6 @@ func TestVideoService_addFileToZip_InvalidPath(t *testing.T) {
 	cfg := &config.Config{}
 	service := NewVideoService(cfg)
 
-	// This would be tested through createZipFile, but we can test the underlying logic
-	// by testing with a non-existent file
 	tempDir := filepath.Join(os.TempDir(), "video_service_test_addfile")
 	defer os.RemoveAll(tempDir)
 
@@ -252,7 +244,6 @@ func TestVideoService_ProcessVideo_Integration(t *testing.T) {
 	tempDir := filepath.Join(os.TempDir(), "video_service_integration_test")
 	defer os.RemoveAll(tempDir)
 
-	// Create test directories
 	uploadsDir := filepath.Join(tempDir, "uploads")
 	outputsDir := filepath.Join(tempDir, "outputs")
 	tempVideoDir := filepath.Join(tempDir, "temp")
@@ -269,20 +260,15 @@ func TestVideoService_ProcessVideo_Integration(t *testing.T) {
 
 	service := NewVideoService(cfg)
 
-	// Note: This test would require an actual video file and ffmpeg to be fully functional
-	// For now, we test the structure and validation
 	videoPath := filepath.Join(uploadsDir, "test.mp4")
 	timestamp := "20240101_120000"
 
-	// Test with non-existent video file (expected to fail at ffmpeg stage)
 	result := service.ProcessVideo(videoPath, timestamp)
 
-	// Should fail because file doesn't exist, but validation should pass
 	assert.False(t, result.Success)
 	assert.NotEmpty(t, result.Message)
 }
 
-// Benchmark for ProcessVideo performance.
 func BenchmarkVideoService_ProcessVideo(b *testing.B) {
 	cfg := &config.Config{
 		UploadsDir: "uploads",
@@ -293,7 +279,6 @@ func BenchmarkVideoService_ProcessVideo(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// This will fail quickly due to validation, but measures overhead
 		_ = service.ProcessVideo("../invalid/path", "20240101_120000")
 	}
 }

@@ -1,4 +1,3 @@
-
 # :motorway: VideoGrinder - Roadmap de Evolução
 
 Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinder, evoluindo de um monólito para uma arquitetura modular e escalável.
@@ -78,6 +77,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 ## :jigsaw: Fase 2 – Modularização (ainda no monolito)
 
 ### 2.1 - Estruturação do Código
+- [x] Extrair configuração para internal/config (variáveis de ambiente)
 - [ ] Criar estrutura de pacotes Go (cmd/, internal/, pkg/)
 - [ ] Extrair frontend para arquivos estáticos
 - [ ] Cobrir frontend (JS) com testes unitários

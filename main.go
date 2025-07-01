@@ -11,13 +11,15 @@ import (
 	"strings"
 	"time"
 
+	"video-processor/internal/config"
 	"video-processor/internal/models"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	createDirs()
+	cfg := config.New()
+	cfg.CreateDirectories()
 
 	r := gin.Default()
 
@@ -34,8 +36,8 @@ func main() {
 		c.Next()
 	})
 
-	r.Static("/uploads", "./uploads")
-	r.Static("/outputs", "./outputs")
+	r.Static("/uploads", "./"+cfg.UploadsDir)
+	r.Static("/outputs", "./"+cfg.OutputsDir)
 
 	r.GET("/", func(c *gin.Context) {
 		c.Header("Content-Type", "text/html")
@@ -48,19 +50,10 @@ func main() {
 
 	r.GET("/api/status", handleStatus)
 
-	fmt.Println("🎬 Servidor iniciado na porta 8080")
-	fmt.Println("📂 Acesse: http://localhost:8080")
+	fmt.Println("🎬 Servidor iniciado na porta", cfg.Port)
+	fmt.Printf("📂 Acesse: http://localhost:%s\n", cfg.Port)
 
-	log.Fatal(r.Run(":8080"))
-}
-
-func createDirs() {
-	dirs := []string{"uploads", "outputs", "temp"}
-	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0750); err != nil {
-			log.Printf("Warning: Failed to create directory %s: %v", dir, err)
-		}
-	}
+	log.Fatal(r.Run(":" + cfg.Port))
 }
 
 func handleVideoUpload(c *gin.Context) {

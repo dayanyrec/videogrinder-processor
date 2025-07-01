@@ -94,3 +94,9 @@ trivy-results.sarif
 *.orig
 
 *.tmp
+
+# Static files (keep these in git)
+!static/
+!static/css/
+!static/js/
+!static/index.html

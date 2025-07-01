@@ -82,8 +82,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [x] Cobrir o core com testes unitários
 - [x] Extrair handlers HTTP para internal/handlers/web
 - [x] Cobrir handlers com testes unitários (86 testes passando)
-- [ ] Criar estrutura de pacotes Go (cmd/, internal/, pkg/)
-- [ ] Extrair frontend para arquivos estáticos
+- [x] Extrair frontend para arquivos estáticos
 - [ ] Cobrir frontend (JS) com testes unitários
 - [ ] Cobrir o core com testes de integração
 

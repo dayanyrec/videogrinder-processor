@@ -35,6 +35,7 @@ func main() {
 
 	r.Static("/uploads", "./"+cfg.UploadsDir)
 	r.Static("/outputs", "./"+cfg.OutputsDir)
+	r.Static("/static", "./static")
 
 	r.GET("/", webHandlers.HandleHome)
 	r.POST("/upload", webHandlers.HandleVideoUpload)

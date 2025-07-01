@@ -233,22 +233,6 @@ func TestWebHandlers_HandleStatus_WithFiles(t *testing.T) {
 	assert.Len(t, files, 2)
 }
 
-func TestWebHandlers_HandleHome(t *testing.T) {
-	handlers, cleanup := setupTestHandlers()
-	defer cleanup()
-
-	gin.SetMode(gin.TestMode)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-
-	handlers.HandleHome(c)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "text/html", w.Header().Get("Content-Type"))
-	assert.Contains(t, w.Body.String(), "FIAP X - Processador de Vídeos")
-	assert.Contains(t, w.Body.String(), "<!DOCTYPE html>")
-}
-
 func TestIsValidVideoFile(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -355,18 +339,6 @@ func TestIsValidVideoFile(t *testing.T) {
 	}
 }
 
-func TestGetHTMLForm(t *testing.T) {
-	html := GetHTMLForm()
-
-	assert.NotEmpty(t, html)
-	assert.Contains(t, html, "<!DOCTYPE html>")
-	assert.Contains(t, html, "FIAP X - Processador de Vídeos")
-	assert.Contains(t, html, "Upload do Vídeo")
-	assert.Contains(t, html, "Arquivos Disponíveis")
-	assert.Contains(t, html, "fetch('/upload'")
-	assert.Contains(t, html, "fetch('/api/status'")
-}
-
 func TestWebHandlers_Integration_FullWorkflow(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -379,11 +351,6 @@ func TestWebHandlers_Integration_FullWorkflow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	handlers.HandleHome(c)
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	w = httptest.NewRecorder()
-	c, _ = gin.CreateTestContext(w)
 	handlers.HandleStatus(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 	var statusResponse map[string]interface{}

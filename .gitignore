@@ -57,8 +57,6 @@ temp/
 *.sqlite
 *.sqlite3
 
-.dockerignore
-
 *.tfstate
 *.tfstate.*
 .terraform/

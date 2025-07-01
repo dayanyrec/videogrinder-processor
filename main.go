@@ -7,6 +7,7 @@ import (
 	"video-processor/internal/api"
 	"video-processor/internal/config"
 	"video-processor/internal/services"
+	"video-processor/internal/web"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,6 +18,7 @@ func main() {
 
 	videoService := services.NewVideoService(cfg)
 	apiHandlers := api.NewAPIHandlers(videoService, cfg)
+	webHandlers := web.NewWebHandlers()
 
 	r := gin.Default()
 
@@ -37,7 +39,7 @@ func main() {
 	r.Static("/outputs", "./"+cfg.OutputsDir)
 	r.Static("/static", "./static")
 
-	r.GET("/", apiHandlers.HandleHome)
+	r.GET("/", webHandlers.HandleHome)
 	r.POST("/upload", apiHandlers.HandleVideoUpload)
 	r.GET("/download/:filename", apiHandlers.HandleDownload)
 	r.GET("/api/status", apiHandlers.HandleStatus)

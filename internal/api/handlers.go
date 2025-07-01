@@ -145,10 +145,6 @@ func (ah *APIHandlers) HandleStatus(c *gin.Context) {
 	})
 }
 
-func (ah *APIHandlers) HandleHome(c *gin.Context) {
-	c.File("./static/index.html")
-}
-
 func IsValidVideoFile(filename string) bool {
 	ext := strings.ToLower(filepath.Ext(filename))
 	validExts := []string{".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm"}

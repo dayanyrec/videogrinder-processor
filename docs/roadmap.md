@@ -78,11 +78,11 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 
 ### 2.1 - Estruturação do Código
 - [x] Extrair configuração para internal/config (variáveis de ambiente)
+- [x] Extrair core de processamento para internal/services/video
+- [x] Cobrir o core com testes unitários
 - [ ] Criar estrutura de pacotes Go (cmd/, internal/, pkg/)
 - [ ] Extrair frontend para arquivos estáticos
 - [ ] Cobrir frontend (JS) com testes unitários
-- [ ] Extrair core de processamento para módulo interno
-- [ ] Cobrir o core com testes unitários
 - [ ] Cobrir o core com testes de integração
 
 ### 2.2 - API Design e Qualidade

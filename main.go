@@ -1,18 +1,17 @@
 package main
 
 import (
-	"archive/zip"
 	"fmt"
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"video-processor/internal/config"
 	"video-processor/internal/models"
+	"video-processor/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,6 +19,8 @@ import (
 func main() {
 	cfg := config.New()
 	cfg.CreateDirectories()
+
+	videoService := services.NewVideoService(cfg)
 
 	r := gin.Default()
 
@@ -44,7 +45,9 @@ func main() {
 		c.String(200, getHTMLForm())
 	})
 
-	r.POST("/upload", handleVideoUpload)
+	r.POST("/upload", func(c *gin.Context) {
+		handleVideoUpload(c, videoService, cfg)
+	})
 
 	r.GET("/download/:filename", handleDownload)
 
@@ -56,7 +59,7 @@ func main() {
 	log.Fatal(r.Run(":" + cfg.Port))
 }
 
-func handleVideoUpload(c *gin.Context) {
+func handleVideoUpload(c *gin.Context, videoService *services.VideoService, cfg *config.Config) {
 	file, header, err := c.Request.FormFile("video")
 	if err != nil {
 		c.JSON(400, models.ProcessingResult{
@@ -81,10 +84,10 @@ func handleVideoUpload(c *gin.Context) {
 
 	timestamp := time.Now().Format("20060102_150405")
 	filename := fmt.Sprintf("%s_%s", timestamp, filepath.Base(header.Filename))
-	videoPath := filepath.Join("uploads", filename)
+	videoPath := filepath.Join(cfg.UploadsDir, filename)
 
 	cleanVideoPath := filepath.Clean(videoPath)
-	uploadsDir, _ := filepath.Abs("uploads")
+	uploadsDir, _ := filepath.Abs(cfg.UploadsDir)
 	absVideoPath, _ := filepath.Abs(cleanVideoPath)
 	if !strings.HasPrefix(absVideoPath, uploadsDir+string(filepath.Separator)) {
 		c.JSON(400, models.ProcessingResult{
@@ -117,7 +120,7 @@ func handleVideoUpload(c *gin.Context) {
 		return
 	}
 
-	result := processVideo(videoPath, timestamp)
+	result := videoService.ProcessVideo(videoPath, timestamp)
 
 	if result.Success {
 		if err := os.Remove(videoPath); err != nil {
@@ -126,211 +129,6 @@ func handleVideoUpload(c *gin.Context) {
 	}
 
 	c.JSON(200, result)
-}
-
-func processVideo(videoPath, timestamp string) models.ProcessingResult {
-	fmt.Printf("Iniciando processamento: %s\n", videoPath)
-
-	if err := validateProcessingInputs(videoPath, timestamp); err != nil {
-		return models.ProcessingResult{Success: false, Message: err.Error()}
-	}
-
-	tempDir := filepath.Join("temp", timestamp)
-	if err := setupTempDirectory(tempDir); err != nil {
-		return models.ProcessingResult{Success: false, Message: err.Error()}
-	}
-	defer cleanupTempDirectory(tempDir)
-
-	frames, err := extractFrames(videoPath, tempDir)
-	if err != nil {
-		return models.ProcessingResult{Success: false, Message: err.Error()}
-	}
-
-	fmt.Printf("📸 Extraídos %d frames\n", len(frames))
-
-	zipPath, err := createFramesZip(frames, timestamp)
-	if err != nil {
-		return models.ProcessingResult{Success: false, Message: err.Error()}
-	}
-
-	fmt.Printf("✅ ZIP criado: %s\n", zipPath)
-
-	imageNames := make([]string, len(frames))
-	for i, frame := range frames {
-		imageNames[i] = filepath.Base(frame)
-	}
-
-	return models.ProcessingResult{
-		Success:    true,
-		Message:    fmt.Sprintf("Processamento concluído! %d frames extraídos.", len(frames)),
-		ZipPath:    filepath.Base(zipPath),
-		FrameCount: len(frames),
-		Images:     imageNames,
-	}
-}
-
-func validateProcessingInputs(videoPath, timestamp string) error {
-	if strings.Contains(videoPath, "..") || strings.Contains(timestamp, "..") {
-		return fmt.Errorf("invalid path parameters")
-	}
-	return nil
-}
-
-func setupTempDirectory(tempDir string) error {
-	if err := os.MkdirAll(tempDir, 0750); err != nil {
-		return fmt.Errorf("erro ao criar diretório temporário: %w", err)
-	}
-	return nil
-}
-
-func cleanupTempDirectory(tempDir string) {
-	if err := os.RemoveAll(tempDir); err != nil {
-		log.Printf("Warning: Failed to remove temp directory %s: %v", tempDir, err)
-	}
-}
-
-func extractFrames(videoPath, tempDir string) ([]string, error) {
-	framePattern := filepath.Join(tempDir, "frame_%04d.png")
-
-	videoPath = filepath.Clean(videoPath)
-	framePattern = filepath.Clean(framePattern)
-
-	if err := validatePathSafety(videoPath, framePattern); err != nil {
-		return nil, err
-	}
-
-	absVideoPath, err := filepath.Abs(videoPath)
-	if err != nil {
-		return nil, fmt.Errorf("error resolving video path: %w", err)
-	}
-	absFramePattern, err := filepath.Abs(framePattern)
-	if err != nil {
-		return nil, fmt.Errorf("error resolving frame pattern path: %w", err)
-	}
-
-	cmd := exec.Command("ffmpeg", // #nosec G204
-		"-i", absVideoPath,
-		"-vf", "fps=1",
-		"-y",
-		absFramePattern,
-	)
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("erro no ffmpeg: %s\nOutput: %s", err.Error(), string(output))
-	}
-
-	frames, err := filepath.Glob(filepath.Join(tempDir, "*.png"))
-	if err != nil || len(frames) == 0 {
-		return nil, fmt.Errorf("nenhum frame foi extraído do vídeo")
-	}
-
-	return frames, nil
-}
-
-func validatePathSafety(paths ...string) error {
-	dangerousChars := []string{";", "&", "|", "$", "`", "(", ")", "{", "}", "[", "]", "*", "?", "<", ">", "~"}
-	for _, path := range paths {
-		for _, char := range dangerousChars {
-			if strings.Contains(path, char) {
-				return fmt.Errorf("invalid characters in file path")
-			}
-		}
-	}
-	return nil
-}
-
-func createFramesZip(frames []string, timestamp string) (string, error) {
-	zipFilename := fmt.Sprintf("frames_%s.zip", timestamp)
-	zipPath := filepath.Join("outputs", zipFilename)
-
-	if err := validateOutputPath(zipPath); err != nil {
-		return "", err
-	}
-
-	err := createZipFile(frames, zipPath)
-	if err != nil {
-		return "", fmt.Errorf("erro ao criar arquivo ZIP: %w", err)
-	}
-
-	return zipPath, nil
-}
-
-func validateOutputPath(zipPath string) error {
-	cleanZipPath := filepath.Clean(zipPath)
-	outputsDir, _ := filepath.Abs("outputs")
-	absZipPath, _ := filepath.Abs(cleanZipPath)
-	if !strings.HasPrefix(absZipPath, outputsDir+string(filepath.Separator)) {
-		return fmt.Errorf("invalid zip path")
-	}
-	return nil
-}
-
-func createZipFile(files []string, zipPath string) error {
-	zipFile, err := os.Create(filepath.Clean(zipPath))
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := zipFile.Close(); err != nil {
-			log.Printf("Warning: Failed to close zip file: %v", err)
-		}
-	}()
-
-	zipWriter := zip.NewWriter(zipFile)
-	defer func() {
-		if err := zipWriter.Close(); err != nil {
-			log.Printf("Warning: Failed to close zip writer: %v", err)
-		}
-	}()
-
-	for _, file := range files {
-		err := addFileToZip(zipWriter, file)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func addFileToZip(zipWriter *zip.Writer, filename string) error {
-	// Validate file path to prevent directory traversal
-	cleanPath := filepath.Clean(filename)
-	if strings.Contains(cleanPath, "..") {
-		return fmt.Errorf("invalid file path: %s", filename)
-	}
-
-	file, err := os.Open(cleanPath)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Printf("Warning: Failed to close file %s: %v", filename, err)
-		}
-	}()
-
-	info, err := file.Stat()
-	if err != nil {
-		return err
-	}
-
-	header, err := zip.FileInfoHeader(info)
-	if err != nil {
-		return err
-	}
-
-	header.Name = filepath.Base(filename)
-	header.Method = zip.Deflate
-
-	writer, err := zipWriter.CreateHeader(header)
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(writer, file)
-	return err
 }
 
 func handleDownload(c *gin.Context) {

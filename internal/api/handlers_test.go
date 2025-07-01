@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"bytes"
@@ -19,8 +19,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestHandlers() (handlers *WebHandlers, cleanup func()) {
-	tempDir := filepath.Join(os.TempDir(), "webhandlers_test")
+func setupTestHandlers() (handlers *APIHandlers, cleanup func()) {
+	tempDir := filepath.Join(os.TempDir(), "apihandlers_test")
 	uploadsDir := filepath.Join(tempDir, "uploads")
 	outputsDir := filepath.Join(tempDir, "outputs")
 	tempVideoDir := filepath.Join(tempDir, "temp")
@@ -36,7 +36,7 @@ func setupTestHandlers() (handlers *WebHandlers, cleanup func()) {
 	}
 
 	videoService := services.NewVideoService(cfg)
-	handlers = NewWebHandlers(videoService, cfg)
+	handlers = NewAPIHandlers(videoService, cfg)
 
 	cleanup = func() {
 		os.RemoveAll(tempDir)
@@ -45,7 +45,7 @@ func setupTestHandlers() (handlers *WebHandlers, cleanup func()) {
 	return
 }
 
-func TestNewWebHandlers(t *testing.T) {
+func TestNewAPIHandlers(t *testing.T) {
 	cfg := &config.Config{
 		UploadsDir: "uploads",
 		OutputsDir: "outputs",
@@ -53,14 +53,14 @@ func TestNewWebHandlers(t *testing.T) {
 	}
 	videoService := services.NewVideoService(cfg)
 
-	handlers := NewWebHandlers(videoService, cfg)
+	handlers := NewAPIHandlers(videoService, cfg)
 
 	assert.NotNil(t, handlers)
 	assert.Equal(t, videoService, handlers.videoService)
 	assert.Equal(t, cfg, handlers.config)
 }
 
-func TestWebHandlers_HandleVideoUpload_InvalidFile(t *testing.T) {
+func TestAPIHandlers_HandleVideoUpload_InvalidFile(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -90,7 +90,7 @@ func TestWebHandlers_HandleVideoUpload_InvalidFile(t *testing.T) {
 	assert.Contains(t, response.Message, "Formato de arquivo não suportado")
 }
 
-func TestWebHandlers_HandleVideoUpload_NoFile(t *testing.T) {
+func TestAPIHandlers_HandleVideoUpload_NoFile(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -112,7 +112,7 @@ func TestWebHandlers_HandleVideoUpload_NoFile(t *testing.T) {
 	assert.Contains(t, response.Message, "Erro ao receber arquivo")
 }
 
-func TestWebHandlers_HandleVideoUpload_ValidFile(t *testing.T) {
+func TestAPIHandlers_HandleVideoUpload_ValidFile(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -142,7 +142,7 @@ func TestWebHandlers_HandleVideoUpload_ValidFile(t *testing.T) {
 	assert.NotEmpty(t, response.Message)
 }
 
-func TestWebHandlers_HandleDownload_FileNotFound(t *testing.T) {
+func TestAPIHandlers_HandleDownload_FileNotFound(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -162,7 +162,7 @@ func TestWebHandlers_HandleDownload_FileNotFound(t *testing.T) {
 	assert.Equal(t, "Arquivo não encontrado", response["error"])
 }
 
-func TestWebHandlers_HandleDownload_FileExists(t *testing.T) {
+func TestAPIHandlers_HandleDownload_FileExists(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -186,7 +186,7 @@ func TestWebHandlers_HandleDownload_FileExists(t *testing.T) {
 	assert.Equal(t, "test zip content", w.Body.String())
 }
 
-func TestWebHandlers_HandleStatus_NoFiles(t *testing.T) {
+func TestAPIHandlers_HandleStatus_NoFiles(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -205,7 +205,7 @@ func TestWebHandlers_HandleStatus_NoFiles(t *testing.T) {
 	assert.Empty(t, response["files"])
 }
 
-func TestWebHandlers_HandleStatus_WithFiles(t *testing.T) {
+func TestAPIHandlers_HandleStatus_WithFiles(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -339,7 +339,7 @@ func TestIsValidVideoFile(t *testing.T) {
 	}
 }
 
-func TestWebHandlers_Integration_FullWorkflow(t *testing.T) {
+func TestAPIHandlers_Integration_FullWorkflow(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
@@ -364,7 +364,7 @@ func TestWebHandlers_Integration_FullWorkflow(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
-func BenchmarkWebHandlers_HandleStatus(b *testing.B) {
+func BenchmarkAPIHandlers_HandleStatus(b *testing.B) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 

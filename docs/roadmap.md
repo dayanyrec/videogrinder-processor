@@ -87,14 +87,14 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Cobrir o core com testes de integração
 
 ### 2.2 - API Design e Qualidade
-- [ ] Extrair API para módulo interno
+- [x] Extrair API para módulo interno
 - [ ] Melhorar implementação da API tornando REST
+- [ ] Cobrir API com testes unitários
+- [ ] Cobrir API com testes de integração
+- [ ] Documentar API com Swagger/OpenAPI automático
 - [ ] Implementar versionamento de API (v1, v2, etc.)
 - [ ] Adicionar middleware de CORS, rate limiting básico
 - [ ] Implementar graceful degradation para falhas
-- [ ] Documentar API com Swagger/OpenAPI automático
-- [ ] Cobrir API com testes unitários
-- [ ] Cobrir API com testes de integração
 
 ### 2.3 - Observabilidade Avançada
 - [ ] Implementar tracing distribuído com AWS X-Ray

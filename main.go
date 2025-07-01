@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"video-processor/internal/api"
 	"video-processor/internal/config"
-	"video-processor/internal/handlers"
 	"video-processor/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -16,7 +16,7 @@ func main() {
 	cfg.CreateDirectories()
 
 	videoService := services.NewVideoService(cfg)
-	webHandlers := handlers.NewWebHandlers(videoService, cfg)
+	apiHandlers := api.NewAPIHandlers(videoService, cfg)
 
 	r := gin.Default()
 
@@ -37,10 +37,10 @@ func main() {
 	r.Static("/outputs", "./"+cfg.OutputsDir)
 	r.Static("/static", "./static")
 
-	r.GET("/", webHandlers.HandleHome)
-	r.POST("/upload", webHandlers.HandleVideoUpload)
-	r.GET("/download/:filename", webHandlers.HandleDownload)
-	r.GET("/api/status", webHandlers.HandleStatus)
+	r.GET("/", apiHandlers.HandleHome)
+	r.POST("/upload", apiHandlers.HandleVideoUpload)
+	r.GET("/download/:filename", apiHandlers.HandleDownload)
+	r.GET("/api/status", apiHandlers.HandleStatus)
 
 	fmt.Println("🎬 Servidor iniciado na porta", cfg.Port)
 	fmt.Printf("📂 Acesse: http://localhost:%s\n", cfg.Port)

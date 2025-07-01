@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"fmt"
@@ -16,19 +16,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type WebHandlers struct {
+type APIHandlers struct {
 	videoService *services.VideoService
 	config       *config.Config
 }
 
-func NewWebHandlers(videoService *services.VideoService, cfg *config.Config) *WebHandlers {
-	return &WebHandlers{
+func NewAPIHandlers(videoService *services.VideoService, cfg *config.Config) *APIHandlers {
+	return &APIHandlers{
 		videoService: videoService,
 		config:       cfg,
 	}
 }
 
-func (wh *WebHandlers) HandleVideoUpload(c *gin.Context) {
+func (ah *APIHandlers) HandleVideoUpload(c *gin.Context) {
 	file, header, err := c.Request.FormFile("video")
 	if err != nil {
 		c.JSON(400, models.ProcessingResult{
@@ -53,10 +53,10 @@ func (wh *WebHandlers) HandleVideoUpload(c *gin.Context) {
 
 	timestamp := time.Now().Format("20060102_150405")
 	filename := fmt.Sprintf("%s_%s", timestamp, filepath.Base(header.Filename))
-	videoPath := filepath.Join(wh.config.UploadsDir, filename)
+	videoPath := filepath.Join(ah.config.UploadsDir, filename)
 
 	cleanVideoPath := filepath.Clean(videoPath)
-	uploadsDir, _ := filepath.Abs(wh.config.UploadsDir)
+	uploadsDir, _ := filepath.Abs(ah.config.UploadsDir)
 	absVideoPath, _ := filepath.Abs(cleanVideoPath)
 	if !strings.HasPrefix(absVideoPath, uploadsDir+string(filepath.Separator)) {
 		c.JSON(400, models.ProcessingResult{
@@ -89,7 +89,7 @@ func (wh *WebHandlers) HandleVideoUpload(c *gin.Context) {
 		return
 	}
 
-	result := wh.videoService.ProcessVideo(videoPath, timestamp)
+	result := ah.videoService.ProcessVideo(videoPath, timestamp)
 
 	if result.Success {
 		if err := os.Remove(videoPath); err != nil {
@@ -100,9 +100,9 @@ func (wh *WebHandlers) HandleVideoUpload(c *gin.Context) {
 	c.JSON(200, result)
 }
 
-func (wh *WebHandlers) HandleDownload(c *gin.Context) {
+func (ah *APIHandlers) HandleDownload(c *gin.Context) {
 	filename := c.Param("filename")
-	filePath := filepath.Join(wh.config.OutputsDir, filename)
+	filePath := filepath.Join(ah.config.OutputsDir, filename)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(404, gin.H{"error": "Arquivo não encontrado"})
@@ -117,8 +117,8 @@ func (wh *WebHandlers) HandleDownload(c *gin.Context) {
 	c.File(filePath)
 }
 
-func (wh *WebHandlers) HandleStatus(c *gin.Context) {
-	files, err := filepath.Glob(filepath.Join(wh.config.OutputsDir, "*.zip"))
+func (ah *APIHandlers) HandleStatus(c *gin.Context) {
+	files, err := filepath.Glob(filepath.Join(ah.config.OutputsDir, "*.zip"))
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Erro ao listar arquivos"})
 		return
@@ -145,7 +145,7 @@ func (wh *WebHandlers) HandleStatus(c *gin.Context) {
 	})
 }
 
-func (wh *WebHandlers) HandleHome(c *gin.Context) {
+func (ah *APIHandlers) HandleHome(c *gin.Context) {
 	c.File("./static/index.html")
 }
 

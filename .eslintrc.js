@@ -50,6 +50,17 @@ module.exports = {
       }
     },
     {
+      files: ['tests/**/*.js', '**/*.test.js'],
+      env: {
+        jest: true,
+        node: true
+      },
+      rules: {
+        'no-console': 'off',
+        'no-unused-expressions': 'off'
+      }
+    },
+    {
       files: ['*.config.js', '.eslintrc.js'],
       env: {
         node: true

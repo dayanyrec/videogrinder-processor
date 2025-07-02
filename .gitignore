@@ -74,6 +74,7 @@ yarn-error.log*
 package-lock.json
 
 .eslintcache
+coverage/
 
 cypress/videos/
 cypress/screenshots/

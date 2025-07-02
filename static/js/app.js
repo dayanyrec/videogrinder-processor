@@ -76,3 +76,8 @@ function loadFilesList() {
       document.getElementById('filesList').innerHTML = '<p style="color: red;">Erro ao carregar arquivos.</p>'
     })
 }
+
+if (typeof global !== 'undefined') {
+  global.showResult = showResult
+  global.loadFilesList = loadFilesList
+}

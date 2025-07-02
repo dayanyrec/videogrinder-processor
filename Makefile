@@ -1,4 +1,4 @@
-.PHONY: help setup run test test-e2e test-e2e-open lint lint-js fmt fmt-js check logs down docker-clean ci-validate ci-build ci-test-local
+.PHONY: help setup run test test-unit test-unit-watch test-unit-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js check logs down docker-clean ci-validate ci-build ci-test-local
 
 DOCKER_IMAGE=videogrinder-processor
 ENV ?= $(word 2,$(MAKECMDGOALS))
@@ -39,9 +39,25 @@ run: ## Run application with auto-build (usage: make run [dev|prod])
 	@echo "🚀 Starting application in $(ENV) mode..."
 	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(SERVICE)
 
-test: ## Run unit tests
-	@echo "🧪 Running unit tests..."
+test: ## Run all tests (unit + integration)
+	@echo "🧪 Running all tests..."
+	@make test-unit
 	$(COMPOSE_CMD) run --rm videogrinder-dev go test -v ./...
+
+test-unit: ## Run JavaScript unit tests
+	@echo "🧪 Running JavaScript unit tests..."
+	npm install
+	npm test
+
+test-unit-watch: ## Run unit tests in watch mode
+	@echo "🧪 Running unit tests in watch mode..."
+	npm install
+	npm run test:watch
+
+test-unit-coverage: ## Run unit tests with coverage report
+	@echo "🧪 Running unit tests with coverage..."
+	npm install
+	npm run test:coverage
 
 test-e2e: ## Run e2e tests (requires app running)
 	@echo "🎭 Running e2e tests..."

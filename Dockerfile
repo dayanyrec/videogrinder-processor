@@ -5,7 +5,9 @@ RUN apk add --no-cache \
     git \
     make \
     curl \
-    bash
+    bash \
+    nodejs \
+    npm
 
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1 && \
     go install golang.org/x/tools/cmd/goimports@v0.21.0 && \

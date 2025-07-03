@@ -1,4 +1,4 @@
-.PHONY: help setup run test test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js check logs down docker-clean
+.PHONY: help setup run test test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-ci lint-ci test-ci check logs down docker-clean
 
 DOCKER_IMAGE=videogrinder-processor
 ENV ?= $(word 2,$(MAKECMDGOALS))
@@ -27,6 +27,11 @@ help: ## Show available commands
 	@echo '  make run prod     # Run in production mode'
 	@echo '  make logs prod    # View production logs'
 	@echo '  make down dev     # Stop dev services'
+	@echo ''
+	@echo 'CI/CD Commands (work inside Docker containers):'
+	@echo '  make fmt-ci       # Format code (CI-friendly)'
+	@echo '  make lint-ci      # Lint code (CI-friendly)'
+	@echo '  make test-ci      # Run tests (CI-friendly)'
 	@echo ''
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
@@ -89,11 +94,31 @@ fmt: ## Format code (Go + JS)
 	npx eslint . --ext .js --fix
 	@echo "✅ Code formatted"
 
+fmt-ci: ## Format code for CI (without Docker Compose)
+	@echo "🎨 Formatting Go code..."
+	gofmt -s -w .
+	goimports -w .
+	@echo "🎨 Formatting JS code..."
+	npm install
+	npx eslint . --ext .js --fix
+	@echo "✅ Code formatted"
+
 fmt-js: ## Format JavaScript code
 	@echo "🎨 Formatting JS code..."
 	npm install
 	npx eslint . --ext .js --fix
 	@echo "✅ JS code formatted"
+
+lint-ci: ## Check code quality for CI (without Docker Compose)
+	@echo "🔍 Running Go linters..."
+	GOFLAGS='-buildvcs=false' golangci-lint run
+	@echo "🔍 Running JS linters..."
+	npm install
+	npx eslint . --ext .js
+
+test-ci: ## Run Go unit tests for CI (without Docker Compose)
+	@echo "🧪 Running Go unit tests..."
+	GOFLAGS='-buildvcs=false' go test -v ./...
 
 check: fmt lint test test-js ## Run all quality checks
 

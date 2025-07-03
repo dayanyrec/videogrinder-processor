@@ -4,7 +4,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 
 ---
 
-## :white_check_mark: Fase 0 – Fortalecer fundação do projeto
+## :white_check_mark: Fase 0 – Fortalecer fundação do projeto ✅ **CONCLUÍDA**
 
 - [x] Criar repositório para POC para manter histórico de fácil acesso
 - [x] Documentar propósito e escopo da POC (`README.md`)
@@ -13,7 +13,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 
 ---
 
-## :rocket: Fase 1 – Tornar a POC um projeto produtivo
+## :rocket: Fase 1 – Tornar a POC um projeto produtivo ✅ **CONCLUÍDA**
 
 ### 1.1 - Desenvolvimento e Qualidade de Código ✅ **CONCLUÍDA**
 - [x] Setup de `.editorconfig`, linters e boas práticas
@@ -33,21 +33,6 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [x] Refatorar função processVideo para reduzir complexidade ciclomática
 - [x] Implementar funções especializadas para validação e limpeza
 
-### 1.3 - Observabilidade e Monitoramento
-- [ ] Implementar logging estruturado em JSON
-- [ ] Melhorar tratamento de erros com contexto adequado
-- [ ] Adicionar health check endpoints robustos
-- [ ] Integrar CloudWatch Logs para desenvolvimento
-- [ ] Implementar métricas básicas de performance
-- [ ] Adicionar monitoramento de recursos (CPU, memória, I/O)
-
-### 1.4 - Integração AWS Básica
-- [ ] Integrar AWS Secrets Manager para configurações sensíveis
-- [ ] Configurar AWS IAM roles e políticas básicas
-- [ ] Setup do LocalStack com S3 e DynamoDB (desenvolvimento local)
-- [ ] Migrar armazenamento local para S3 (LocalStack)
-- [ ] Implementar criptografia básica com AWS KMS (LocalStack)
-
 ### 1.5 - Testes e Qualidade ✅ **CONCLUÍDA**
 - [x] Corrigir issues de pre-alocação de slices (prealloc)
 - [x] Implementar validação automatizada com linters de segurança
@@ -64,16 +49,6 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 
 ---
 
-### 1.7 - Infraestrutura de Deploy na AWS (Futuro)
-- [ ] Setup de Terraform para infraestrutura AWS
-- [ ] Configurar AWS ECS/Fargate para containers
-- [ ] Pipeline de deploy automatizado para produção
-- [ ] Implementar health checks e monitoring na AWS
-- [ ] Configurar AWS CloudWatch para logs e métricas
-- [ ] Setup de domínio e SSL/TLS
-
----
-
 ## :jigsaw: Fase 2 – Modularização (ainda no monolito)
 
 ### 2.1 - Estruturação do Código
@@ -83,8 +58,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [x] Extrair handlers HTTP para internal/handlers/web
 - [x] Cobrir handlers com testes unitários (86 testes passando)
 - [x] Extrair frontend para arquivos estáticos
-- [ ] Cobrir frontend (JS) com testes unitários
-- [ ] Cobrir o core com testes de integração
+- [x] Cobrir frontend (JS) com testes unitários
 
 ### 2.2 - API Design e Qualidade
 - [x] Extrair API para módulo interno
@@ -92,17 +66,6 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Cobrir API com testes unitários
 - [ ] Cobrir API com testes de integração
 - [ ] Documentar API com Swagger/OpenAPI automático
-- [ ] Implementar versionamento de API (v1, v2, etc.)
-- [ ] Adicionar middleware de CORS, rate limiting básico
-- [ ] Implementar graceful degradation para falhas
-
-### 2.3 - Observabilidade Avançada
-- [ ] Implementar tracing distribuído com AWS X-Ray
-- [ ] Adicionar métricas customizadas de negócio
-- [ ] Implementar alertas proativos baseados em SLIs/SLOs
-- [ ] Melhorar logs com contexto de requisição
-- [ ] Adicionar dashboards básicos de monitoramento
-- [ ] Implementar testes de segurança automatizados (SAST/DAST)
 
 ---
 
@@ -200,6 +163,43 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Adicionar variáveis de ambiente para configuração
 - [ ] Implementar timeouts para operações FFmpeg
 - [ ] Adicionar rate limiting básico
+
+### 1.3 - Observabilidade e Monitoramento
+- [ ] Implementar logging estruturado em JSON
+- [ ] Melhorar tratamento de erros com contexto adequado
+- [ ] Adicionar health check endpoints robustos
+- [ ] Integrar CloudWatch Logs para desenvolvimento
+- [ ] Implementar métricas básicas de performance
+- [ ] Adicionar monitoramento de recursos (CPU, memória, I/O)
+
+### 1.4 - Integração AWS Básica
+- [ ] Integrar AWS Secrets Manager para configurações sensíveis
+- [ ] Configurar AWS IAM roles e políticas básicas
+- [ ] Setup do LocalStack com S3 e DynamoDB (desenvolvimento local)
+- [ ] Migrar armazenamento local para S3 (LocalStack)
+- [ ] Implementar criptografia básica com AWS KMS (LocalStack)
+
+### 1.7 - Infraestrutura de Deploy na AWS (Futuro)
+- [ ] Setup de Terraform para infraestrutura AWS
+- [ ] Configurar AWS ECS/Fargate para containers
+- [ ] Pipeline de deploy automatizado para produção
+- [ ] Implementar health checks e monitoring na AWS
+- [ ] Configurar AWS CloudWatch para logs e métricas
+- [ ] Setup de domínio e SSL/TLS
+
+### 2.3 - Observabilidade Avançada
+- [ ] Implementar tracing distribuído com AWS X-Ray
+- [ ] Adicionar métricas customizadas de negócio
+- [ ] Implementar alertas proativos baseados em SLIs/SLOs
+- [ ] Melhorar logs com contexto de requisição
+- [ ] Adicionar dashboards básicos de monitoramento
+- [ ] Implementar testes de segurança automatizados (SAST/DAST)
+
+### 2.2 - API Design e Qualidade
+- [ ] Implementar versionamento de API (v1, v2, etc.)
+- [ ] Adicionar middleware de CORS, rate limiting básico
+- [ ] Implementar graceful degradation para falhas
+
 
 ---
 

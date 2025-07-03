@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine AS development
+FROM golang:1.24-alpine AS development
 
 RUN apk add --no-cache \
     ffmpeg \
@@ -26,7 +26,7 @@ EXPOSE 8080
 
 CMD ["air", "-c", ".air.toml"]
 
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 RUN apk add --no-cache git ca-certificates tzdata
 

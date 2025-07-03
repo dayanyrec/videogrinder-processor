@@ -42,7 +42,7 @@ jobs:
       run: make test
 
     - name: 🧪 Run unit tests (JS)
-      run: make test-unit
+      run: make test-js
 
   build-test:
     name: 🏗️ Build & Production Test

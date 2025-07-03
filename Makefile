@@ -1,4 +1,4 @@
-.PHONY: help setup run test test-unit test-unit-watch test-unit-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js check logs down docker-clean ci-validate ci-build ci-test-local
+.PHONY: help setup run test test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js check logs down docker-clean
 
 DOCKER_IMAGE=videogrinder-processor
 ENV ?= $(word 2,$(MAKECMDGOALS))
@@ -43,17 +43,17 @@ test: ## Run Go unit tests
 	@echo "🧪 Running Go unit tests..."
 	$(COMPOSE_CMD) run --rm videogrinder-dev go test -v ./...
 
-test-unit: ## Run JavaScript unit tests
+test-js: ## Run JavaScript unit tests
 	@echo "🧪 Running JavaScript unit tests..."
 	npm install
 	npm test
 
-test-unit-watch: ## Run unit tests in watch mode
+test-js-watch: ## Run unit tests in watch mode
 	@echo "🧪 Running unit tests in watch mode..."
 	npm install
 	npm run test:watch
 
-test-unit-coverage: ## Run unit tests with coverage report
+test-js-coverage: ## Run unit tests with coverage report
 	@echo "🧪 Running unit tests with coverage..."
 	npm install
 	npm run test:coverage
@@ -95,7 +95,7 @@ fmt-js: ## Format JavaScript code
 	npx eslint . --ext .js --fix
 	@echo "✅ JS code formatted"
 
-check: fmt lint test test-unit ## Run all quality checks
+check: fmt lint test test-js ## Run all quality checks
 
 logs: ## View application logs (usage: make logs [dev|prod])
 	@echo "📋 Showing $(ENV) logs..."

@@ -32,7 +32,7 @@ func TestWebHandlers_HandleHome(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 
 	// Set up a proper HTTP request for the context
-	req := httptest.NewRequest("GET", "/", nil)
+	req := httptest.NewRequest("GET", "/", http.NoBody)
 	c.Request = req
 
 	handlers.HandleHome(c)

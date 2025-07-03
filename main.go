@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 
 	"video-processor/internal/api"
 	"video-processor/internal/config"
@@ -28,7 +29,7 @@ func main() {
 		c.Header("Access-Control-Allow-Headers", "Content-Type")
 
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
 

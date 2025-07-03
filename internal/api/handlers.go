@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,7 +32,7 @@ func NewAPIHandlers(videoService *services.VideoService, cfg *config.Config) *AP
 func (ah *APIHandlers) HandleVideoUpload(c *gin.Context) {
 	file, header, err := c.Request.FormFile("video")
 	if err != nil {
-		c.JSON(400, models.ProcessingResult{
+		c.JSON(http.StatusBadRequest, models.ProcessingResult{
 			Success: false,
 			Message: "Erro ao receber arquivo: " + err.Error(),
 		})
@@ -44,7 +45,7 @@ func (ah *APIHandlers) HandleVideoUpload(c *gin.Context) {
 	}()
 
 	if !IsValidVideoFile(header.Filename) {
-		c.JSON(400, models.ProcessingResult{
+		c.JSON(http.StatusBadRequest, models.ProcessingResult{
 			Success: false,
 			Message: "Formato de arquivo não suportado. Use: mp4, avi, mov, mkv",
 		})
@@ -59,7 +60,7 @@ func (ah *APIHandlers) HandleVideoUpload(c *gin.Context) {
 	uploadsDir, _ := filepath.Abs(ah.config.UploadsDir)
 	absVideoPath, _ := filepath.Abs(cleanVideoPath)
 	if !strings.HasPrefix(absVideoPath, uploadsDir+string(filepath.Separator)) {
-		c.JSON(400, models.ProcessingResult{
+		c.JSON(http.StatusBadRequest, models.ProcessingResult{
 			Success: false,
 			Message: "Invalid file path",
 		})
@@ -68,7 +69,7 @@ func (ah *APIHandlers) HandleVideoUpload(c *gin.Context) {
 
 	out, err := os.Create(filepath.Clean(videoPath))
 	if err != nil {
-		c.JSON(500, models.ProcessingResult{
+		c.JSON(http.StatusInternalServerError, models.ProcessingResult{
 			Success: false,
 			Message: "Erro ao salvar arquivo: " + err.Error(),
 		})
@@ -82,7 +83,7 @@ func (ah *APIHandlers) HandleVideoUpload(c *gin.Context) {
 
 	_, err = io.Copy(out, file)
 	if err != nil {
-		c.JSON(500, models.ProcessingResult{
+		c.JSON(http.StatusInternalServerError, models.ProcessingResult{
 			Success: false,
 			Message: "Erro ao salvar arquivo: " + err.Error(),
 		})
@@ -97,7 +98,7 @@ func (ah *APIHandlers) HandleVideoUpload(c *gin.Context) {
 		}
 	}
 
-	c.JSON(200, result)
+	c.JSON(http.StatusOK, result)
 }
 
 func (ah *APIHandlers) HandleDownload(c *gin.Context) {
@@ -105,7 +106,7 @@ func (ah *APIHandlers) HandleDownload(c *gin.Context) {
 	filePath := filepath.Join(ah.config.OutputsDir, filename)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(404, gin.H{"error": "Arquivo não encontrado"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Arquivo não encontrado"})
 		return
 	}
 
@@ -120,7 +121,7 @@ func (ah *APIHandlers) HandleDownload(c *gin.Context) {
 func (ah *APIHandlers) HandleStatus(c *gin.Context) {
 	files, err := filepath.Glob(filepath.Join(ah.config.OutputsDir, "*.zip"))
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Erro ao listar arquivos"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao listar arquivos"})
 		return
 	}
 
@@ -139,7 +140,7 @@ func (ah *APIHandlers) HandleStatus(c *gin.Context) {
 		})
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"files": results,
 		"total": len(results),
 	})

@@ -28,6 +28,12 @@ help: ## Show available commands
 	@echo '  make logs prod    # View production logs'
 	@echo '  make down dev     # Stop dev services'
 	@echo ''
+	@echo 'Development Commands (use the dev container):'
+	@echo '  make fmt          # Format code (Go + JS)'
+	@echo '  make lint         # Lint code (Go + JS)'
+	@echo '  make test         # Run Go tests'
+	@echo '  make test-js      # Run JavaScript tests'
+	@echo ''
 	@echo 'CI/CD Commands (work inside Docker containers):'
 	@echo '  make fmt-ci       # Format code (CI-friendly)'
 	@echo '  make lint-ci      # Lint code (CI-friendly)'
@@ -76,7 +82,7 @@ test-e2e-open: ## Open Cypress interactive mode
 
 lint: ## Check code quality (Go + JS)
 	@echo "🔍 Running Go linters..."
-	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools
+	$(COMPOSE_CMD) run --rm videogrinder-dev sh -c "GOFLAGS='-buildvcs=false' golangci-lint run"
 	@echo "🔍 Running JS linters..."
 	npm install
 	npx eslint . --ext .js
@@ -88,7 +94,7 @@ lint-js: ## Check JavaScript code quality
 
 fmt: ## Format code (Go + JS)
 	@echo "🎨 Formatting Go code..."
-	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "gofmt -s -w . && goimports -w ."
+	$(COMPOSE_CMD) run --rm videogrinder-dev sh -c "gofmt -s -w . && goimports -w ."
 	@echo "🎨 Formatting JS code..."
 	npm install
 	npx eslint . --ext .js --fix

@@ -2,10 +2,17 @@ Cypress.Commands.add('uploadVideo', (fileName) => {
   cy.get('input[type="file"]').selectFile(`cypress/fixtures/${fileName}`, { force: true })
 })
 
-Cypress.Commands.add('waitForProcessing', (timeout = 30000) => {
-  cy.get('#loading', { timeout }).should('be.visible')
-  cy.get('#result', { timeout }).should('be.visible')
+Cypress.Commands.add('waitForUploadComplete', () => {
+  cy.get('#loading', { timeout: 45000 }).should('not.be.visible')
+  cy.get('#result', { timeout: 45000 }).should('be.visible')
   cy.get('#result').should('not.contain', 'Processando')
+})
+
+Cypress.Commands.add('uploadAndProcess', (fileName) => {
+  cy.uploadVideo(fileName)
+  cy.get('button[type="submit"]').click()
+  cy.waitForUploadComplete()
+  cy.verifyProcessingSuccess()
 })
 
 Cypress.Commands.add('verifyProcessingSuccess', () => {

@@ -39,7 +39,7 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
       cy.get('#loading').should('be.visible')
       cy.get('#loading').should('contain', 'Processando vídeo')
 
-      cy.waitForProcessing(45000)
+      cy.waitForUploadComplete()
 
       cy.verifyProcessingSuccess()
       cy.get('#result').should('contain', 'frames extraídos')
@@ -53,10 +53,7 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
     })
 
     it('should show processed file in the listing', () => {
-      cy.uploadVideo('test-video-valid.mp4')
-      cy.get('button[type="submit"]').click()
-      cy.waitForProcessing(45000)
-      cy.verifyProcessingSuccess()
+      cy.uploadAndProcess('test-video-valid.mp4')
 
       cy.checkFileListing()
       cy.get('#filesList').should('contain', 'frames_')
@@ -105,10 +102,7 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
 
   describe('File Download', () => {
     it('should allow downloading processed files', () => {
-      cy.uploadVideo('test-video-valid.mp4')
-      cy.get('button[type="submit"]').click()
-      cy.waitForProcessing(45000)
-      cy.verifyProcessingSuccess()
+      cy.uploadAndProcess('test-video-valid.mp4')
 
       cy.get('#filesList a[href*="/download/"]').first().then(($link) => {
         cy.request($link.attr('href')).then((response) => {
@@ -148,17 +142,13 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
       cy.get('#loading').should('contain', 'Processando vídeo')
       cy.get('#loading').should('contain', 'Isso pode levar alguns minutos')
 
-      cy.waitForProcessing(45000)
-      cy.get('#loading').should('not.be.visible')
+      cy.waitForUploadComplete()
     })
 
     it('should update file listing dynamically', () => {
       cy.checkFileListing()
 
-      cy.uploadVideo('test-video-valid.mp4')
-      cy.get('button[type="submit"]').click()
-      cy.waitForProcessing(45000)
-      cy.verifyProcessingSuccess()
+      cy.uploadAndProcess('test-video-valid.mp4')
 
       cy.get('#filesList').should('contain', 'frames_')
       cy.get('#filesList').should('contain', '.zip')

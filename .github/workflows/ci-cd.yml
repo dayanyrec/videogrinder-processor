@@ -1,4 +1,4 @@
-name: 🔍 VideoGrinder Quality Pipeline
+name: 🔍 VideoGrinder CI/CD Pipeline
 
 on:
   push:
@@ -38,8 +38,11 @@ jobs:
     - name: 🔍 Run linting (Go + JS)
       run: make lint
 
-    - name: 🧪 Run unit tests
+    - name: 🧪 Run unit tests (Go)
       run: make test
+
+    - name: 🧪 Run unit tests (JS)
+      run: make test-unit
 
   build-test:
     name: 🏗️ Build & Production Test
@@ -134,53 +137,3 @@ jobs:
     - name: 🧹 Cleanup
       if: always()
       run: make down
-
-  pipeline-summary:
-    name: 🎉 Pipeline Summary
-    runs-on: ubuntu-latest
-    needs: [quality-checks, build-test, e2e-tests]
-    if: always()
-
-    steps:
-    - name: 🎯 Pipeline Results
-      run: |
-        echo "## 🚀 VideoGrinder CI/CD Pipeline Results" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-
-        if [ "${{ needs.quality-checks.result }}" = "success" ]; then
-          echo "✅ **Quality Checks**: PASSED" >> $GITHUB_STEP_SUMMARY
-          echo "  - Code formatting: ✅" >> $GITHUB_STEP_SUMMARY
-          echo "  - Linting (Go + JS): ✅" >> $GITHUB_STEP_SUMMARY
-          echo "  - Unit tests (43 tests): ✅" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ **Quality Checks**: FAILED" >> $GITHUB_STEP_SUMMARY
-        fi
-
-        if [ "${{ needs.build-test.result }}" = "success" ]; then
-          echo "✅ **Build & Production Test**: PASSED" >> $GITHUB_STEP_SUMMARY
-          echo "  - Production image build: ✅" >> $GITHUB_STEP_SUMMARY
-          echo "  - Production startup test: ✅" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ **Build & Production Test**: FAILED" >> $GITHUB_STEP_SUMMARY
-        fi
-
-        if [ "${{ needs.e2e-tests.result }}" = "success" ]; then
-          echo "✅ **End-to-End Tests**: PASSED" >> $GITHUB_STEP_SUMMARY
-          echo "  - E2E tests (17 tests): ✅" >> $GITHUB_STEP_SUMMARY
-          echo "  - Full user journey: ✅" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ **End-to-End Tests**: FAILED" >> $GITHUB_STEP_SUMMARY
-        fi
-
-        echo "" >> $GITHUB_STEP_SUMMARY
-
-        # Overall status
-        if [ "${{ needs.quality-checks.result }}" = "success" ] && [ "${{ needs.build-test.result }}" = "success" ] && [ "${{ needs.e2e-tests.result }}" = "success" ]; then
-          echo "🎉 **Overall Status**: ✅ ALL CHECKS PASSED - Ready for deployment!" >> $GITHUB_STEP_SUMMARY
-          echo "🚀 **Quality Score**: 100% - All 60 tests passed" >> $GITHUB_STEP_SUMMARY
-          exit 0
-        else
-          echo "❌ **Overall Status**: PIPELINE FAILED" >> $GITHUB_STEP_SUMMARY
-          echo "🔧 **Action Required**: Fix failing checks before merge" >> $GITHUB_STEP_SUMMARY
-          exit 1
-        fi

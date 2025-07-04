@@ -56,14 +56,22 @@ jobs:
 
     - name: 🚀 Step 5 - Health Check Services
       run: |
+        echo "🧹 Stopping any existing services..."
+        make down prod || true
+
+        echo "🚀 Starting services for health check..."
         make run prod &
         sleep 5
+
+        echo "🔍 Running health checks..."
         if ! timeout 60s bash -c 'until make health; do sleep 2; done'; then
           echo "❌ Health check failed. Showing service logs..."
           make logs-tail prod
           make down prod
           exit 1
         fi
+
+        echo "✅ Health check passed!"
         make down prod
 
   pr-summary:

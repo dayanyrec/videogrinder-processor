@@ -106,48 +106,48 @@ test-clients: ## Run clients unit tests
 
 test-js: ## Run JavaScript unit tests
 	@echo "🧪 Running JavaScript unit tests..."
-	npm install
-	npm test
+	cd web && npm install
+	cd web && npm test
 
 test-js-watch: ## Run unit tests in watch mode
 	@echo "🧪 Running unit tests in watch mode..."
-	npm install
-	npm run test:watch
+	cd web && npm install
+	cd web && npm run test:watch
 
 test-js-coverage: ## Run unit tests with coverage report
 	@echo "🧪 Running unit tests with coverage..."
-	npm install
-	npm run test:coverage
+	cd web && npm install
+	cd web && npm run test:coverage
 
 test-e2e: ## Run e2e tests (requires app running)
 	@echo "🎭 Running e2e tests..."
 	@echo "⚠️  Make sure the app is running with 'make run' in another terminal"
-	npm install cypress --save-dev
-	npx cypress run
+	cd web && npm install cypress --save-dev
+	cd web && npx cypress run
 
 test-e2e-open: ## Open Cypress interactive mode
 	@echo "🎭 Opening Cypress..."
-	npm install cypress --save-dev
-	npx cypress open
+	cd web && npm install cypress --save-dev
+	cd web && npx cypress open
 
 lint: ## Check code quality (Go + JS)
 	@echo "🔍 Running Go linters..."
 	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools
 	@echo "🔍 Running JS linters..."
-	npm install
-	npx eslint . --ext .js
+	cd web && npm install
+	cd web && npx eslint . --ext .js
 
 lint-js: ## Check JavaScript code quality
 	@echo "🔍 Running JS linters..."
-	npm install
-	npx eslint . --ext .js
+	cd web && npm install
+	cd web && npx eslint . --ext .js
 
 fmt: ## Format code (Go + JS)
 	@echo "🎨 Formatting Go code..."
 	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "gofmt -s -w . && goimports -w ."
 	@echo "🎨 Formatting JS code..."
-	npm install
-	npx eslint . --ext .js --fix
+	cd web && npm install
+	cd web && npx eslint . --ext .js --fix
 	@echo "✅ Code formatted"
 
 fmt-ci: ## Format code for CI (without Docker Compose)
@@ -155,14 +155,14 @@ fmt-ci: ## Format code for CI (without Docker Compose)
 	gofmt -s -w .
 	goimports -w .
 	@echo "🎨 Formatting JS code..."
-	npm install
-	npx eslint . --ext .js --fix
+	cd web && npm install
+	cd web && npx eslint . --ext .js --fix
 	@echo "✅ Code formatted"
 
 fmt-js: ## Format JavaScript code
 	@echo "🎨 Formatting JS code..."
-	npm install
-	npx eslint . --ext .js --fix
+	cd web && npm install
+	cd web && npx eslint . --ext .js --fix
 	@echo "✅ JS code formatted"
 
 lint-ci: ## Check code quality for CI (without Docker Compose)

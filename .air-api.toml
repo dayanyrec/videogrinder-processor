@@ -7,7 +7,7 @@ tmp_dir = "tmp"
   bin = "./tmp/api"
   cmd = "go build -buildvcs=false -o ./tmp/api ./api/cmd"
   delay = 100
-  exclude_dir = ["tmp", "vendor", "testdata", "uploads", "outputs", "temp", "bin", ".git", "docs", "node_modules", "cypress", ".github", ".vscode", ".idea"]
+  exclude_dir = ["tmp", "vendor", "testdata", "uploads", "outputs", "temp", "bin", ".git", "docs", "node_modules", "cypress", ".github", ".vscode", ".idea", "web/node_modules", "web/cypress", "web/coverage", "coverage"]
   exclude_file = []
   exclude_regex = ["_test.go"]
   exclude_unchanged = true

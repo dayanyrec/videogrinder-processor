@@ -214,9 +214,13 @@ videogrinder-processor/
 │   │   └── validation_test.go # Testes de validação
 │   └── web/             # Web handlers (frontend)
 │       └── handlers.go  # Handlers para páginas web
-├── static/              # Arquivos estáticos (CSS, JS, HTML)
-├── tests/               # Testes JavaScript
-├── cypress/             # Testes end-to-end
+├── web/                 # Web Service (frontend)
+│   ├── static/          # Arquivos estáticos (CSS, JS, HTML)
+│   ├── tests/           # Testes JavaScript
+│   ├── cypress/         # Testes end-to-end
+│   ├── .eslintrc.js     # Configuração ESLint (frontend)
+│   ├── cypress.config.js # Configuração do Cypress
+│   └── package.json     # Dependências Node.js
 ├── docs/               # Documentação do projeto
 │   ├── roadmap.md      # Roadmap de evolução
 │   └── tech-mandates.md # Diretrizes técnicas obrigatórias

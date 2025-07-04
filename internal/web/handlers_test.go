@@ -20,11 +20,11 @@ func TestWebHandlers_HandleHome(t *testing.T) {
 	handlers := NewWebHandlers()
 
 	// Create static directory and index.html for test
-	err := os.MkdirAll("static", 0755)
+	err := os.MkdirAll("web/static", 0755)
 	require.NoError(t, err)
-	defer os.RemoveAll("static")
+	defer os.RemoveAll("web")
 
-	err = os.WriteFile("static/index.html", []byte("<!DOCTYPE html><html><body>Test</body></html>"), 0644)
+	err = os.WriteFile("web/static/index.html", []byte("<!DOCTYPE html><html><body>Test</body></html>"), 0644)
 	require.NoError(t, err)
 
 	gin.SetMode(gin.TestMode)

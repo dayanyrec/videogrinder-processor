@@ -15,8 +15,8 @@ main_test.go
 coverage.out
 
 # Testing frameworks
-cypress/
-cypress.config.js
+web/cypress/
+web/cypress.config.js
 
 # Documentation
 docs/

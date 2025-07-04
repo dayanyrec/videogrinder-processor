@@ -11,5 +11,5 @@ func NewWebHandlers() *WebHandlers {
 }
 
 func (wh *WebHandlers) HandleHome(c *gin.Context) {
-	c.File("./static/index.html")
+	c.File("./web/static/index.html")
 }

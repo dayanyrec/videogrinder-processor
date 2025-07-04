@@ -28,10 +28,10 @@ func main() {
 		c.Next()
 	})
 
-	r.Static("/static", "./static")
+	r.Static("/static", "./web/static")
 
 	r.GET("/", func(c *gin.Context) {
-		c.File("./static/index.html")
+		c.File("./web/static/index.html")
 	})
 
 	r.GET("/health", func(c *gin.Context) {
@@ -42,7 +42,7 @@ func main() {
 	})
 
 	fmt.Printf("🎬 Web Service iniciado na porta %s\n", cfg.Port)
-	fmt.Printf("🌐 Serving static files from ./static\n")
+	fmt.Printf("🌐 Serving static files from ./web/static\n")
 	fmt.Printf("🔧 API URL configurado: %s\n", cfg.APIURL)
 
 	log.Fatal(r.Run(":" + cfg.Port))

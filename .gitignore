@@ -76,8 +76,8 @@ package-lock.json
 .eslintcache
 coverage/
 
-cypress/videos/
-cypress/screenshots/
+web/cypress/videos/
+web/cypress/screenshots/
 cypress/downloads/
 
 build-errors.log

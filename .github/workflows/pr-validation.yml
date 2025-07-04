@@ -9,10 +9,6 @@ env:
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
 
-concurrency:
-  group: pr-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
 jobs:
   validation:
     name: 🔍 PR Validation (5 Steps)
@@ -56,9 +52,6 @@ jobs:
 
     - name: 🚀 Step 5 - Health Check Services
       run: |
-        echo "🧹 Stopping any existing services..."
-        make down prod || true
-
         echo "🚀 Starting services for health check..."
         make run prod &
         sleep 5

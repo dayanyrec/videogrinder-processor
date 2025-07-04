@@ -1,4 +1,30 @@
 services:
+  # Web Service - serves the frontend
+  videogrinder-web-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - air-tmp:/app/tmp
+    environment:
+      - ENV=development
+      - DEBUG=true
+      - AWS_REGION=us-east-1
+      - PORT=8080
+      - API_URL=http://videogrinder-api-dev:8081
+    networks:
+      - videogrinder-network
+    depends_on:
+      - videogrinder-api-dev
+    profiles:
+      - dev
+    command: ["air", "-c", ".air-web.toml"]
+
+
   # API Service - handles REST API requests
   videogrinder-api-dev:
     build:
@@ -6,7 +32,7 @@ services:
       dockerfile: Dockerfile
       target: development
     ports:
-      - "8080:8080"
+      - "8081:8081"
     volumes:
       - .:/app
       - videogrinder-uploads:/app/uploads
@@ -17,6 +43,7 @@ services:
       - ENV=development
       - DEBUG=true
       - AWS_REGION=us-east-1
+      - PORT=8081
       - PROCESSOR_URL=http://videogrinder-processor-dev:8082
     networks:
       - videogrinder-network
@@ -51,8 +78,8 @@ services:
       - dev
     command: ["air", "-c", ".air-processor.toml"]
 
-  # Production API Service
-  videogrinder-api-prod:
+  # Production Web Service
+  videogrinder-web-prod:
     build:
       context: .
       dockerfile: Dockerfile
@@ -60,12 +87,42 @@ services:
     ports:
       - "8080:8080"
     volumes:
+      - .:/app
+    environment:
+      - ENV=production
+      - AWS_REGION=us-east-1
+      - PORT=8080
+      - API_URL=http://videogrinder-api-prod:8081
+    networks:
+      - videogrinder-network
+    depends_on:
+      - videogrinder-api-prod
+    profiles:
+      - prod
+    command: ["./cmd/web/main"]
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Production API Service
+  videogrinder-api-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "8081:8081"
+    volumes:
       - videogrinder-uploads:/app/uploads
       - videogrinder-outputs:/app/outputs
       - videogrinder-temp:/app/temp
     environment:
       - ENV=production
       - AWS_REGION=us-east-1
+      - PORT=8081
       - PROCESSOR_URL=http://videogrinder-processor-prod:8082
     networks:
       - videogrinder-network
@@ -75,7 +132,7 @@ services:
       - prod
     command: ["./cmd/api/main"]
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
       interval: 30s
       timeout: 10s
       retries: 3

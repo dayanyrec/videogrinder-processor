@@ -1,4 +1,4 @@
-.PHONY: help setup run run-api run-processor test test-api test-processor test-services test-utils test-clients test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-ci lint-ci test-ci test-api-ci test-processor-ci check logs logs-api logs-processor down docker-clean
+.PHONY: help setup run run-api run-web run-processor test test-api test-processor test-services test-utils test-clients test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-ci lint-ci test-ci test-api-ci test-processor-ci check logs logs-web logs-api logs-processor down docker-clean
 
 DOCKER_IMAGE=videogrinder-processor
 ENV ?= $(word 2,$(MAKECMDGOALS))
@@ -6,6 +6,7 @@ ENV := $(if $(ENV),$(ENV),dev)
 PROFILE = $(if $(filter prod,$(ENV)),prod,dev)
 SERVICE = $(if $(filter prod,$(ENV)),videogrinder-prod,videogrinder-dev)
 API_SERVICE = $(if $(filter prod,$(ENV)),videogrinder-api-prod,videogrinder-api-dev)
+WEB_SERVICE = $(if $(filter prod,$(ENV)),videogrinder-web-prod,videogrinder-web-dev)
 PROCESSOR_SERVICE = $(if $(filter prod,$(ENV)),videogrinder-processor-prod,videogrinder-processor-dev)
 
 # Detect which Docker Compose command is available
@@ -26,10 +27,15 @@ help: ## Show available commands
 	@echo 'Environment: dev (default) | prod'
 	@echo ''
 	@echo 'Multi-Service Architecture:'
-	@echo '  make run          # Run both API and processor services'
+	@echo '  make run          # Run all 3 services (Web + API + Processor)'
+	@echo '  make run-web      # Run only Web service (static files)'
 	@echo '  make run-api      # Run only API service'
 	@echo '  make run-processor # Run only processor service'
 	@echo ''
+	@echo 'Port Configuration:'
+	@echo '  Web Service:      http://localhost:8080 (static files)'
+	@echo '  API Service:      http://localhost:8081 (REST API)'
+	@echo '  Processor Service: http://localhost:8082 (video processing)'
 	@echo ''
 	@echo 'Testing:'
 	@echo '  make test         # Run all Go tests (API + processor)'
@@ -39,8 +45,8 @@ help: ## Show available commands
 	@echo '  make test-e2e     # Run end-to-end tests'
 	@echo ''
 	@echo 'Examples:'
-	@echo '  make run dev      # Run API + processor in dev mode'
-	@echo '  make run prod     # Run API + processor in production mode'
+	@echo '  make run dev      # Run all 3 services in dev mode'
+	@echo '  make run prod     # Run all 3 services in production mode'
 	@echo '  make logs prod    # View production logs'
 	@echo '  make down dev     # Stop dev services'
 	@echo ''
@@ -55,22 +61,24 @@ help: ## Show available commands
 
 setup: ## Configure environment (usage: make setup [dev|prod])
 	@echo "🔧 Setting up $(ENV) environment..."
-	$(COMPOSE_CMD) build $(API_SERVICE) $(PROCESSOR_SERVICE)
+	$(COMPOSE_CMD) build $(API_SERVICE) $(WEB_SERVICE) $(PROCESSOR_SERVICE)
 	@echo "✅ $(ENV) environment ready"
 
-run: ## Run both API and processor services (usage: make run [dev|prod])
-	@echo "🚀 Starting API + Processor services in $(ENV) mode..."
-	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(API_SERVICE) $(PROCESSOR_SERVICE)
+run: ## Run all 3 services (Web + API + Processor) (usage: make run [dev|prod])
+	@echo "🚀 Starting all 3 services (Web + API + Processor) in $(ENV) mode..."
+	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
 
 run-api: ## Run only API service (usage: make run-api [dev|prod])
 	@echo "🎬 Starting API service in $(ENV) mode..."
 	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(API_SERVICE)
 
+run-web: ## Run only web service (usage: make run-web [dev|prod])
+	@echo "🎬 Starting web service in $(ENV) mode..."
+	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(WEB_SERVICE)
+
 run-processor: ## Run only processor service (usage: make run-processor [dev|prod])
 	@echo "🔧 Starting processor service in $(ENV) mode..."
 	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(PROCESSOR_SERVICE)
-
-
 
 test: ## Run all Go unit tests (API + processor)
 	@echo "🧪 Running all Go unit tests..."
@@ -178,9 +186,13 @@ test-processor-ci: ## Run processor service unit tests for CI
 
 check: fmt lint test test-js ## Run all quality checks
 
-logs: ## View application logs (usage: make logs [dev|prod])
-	@echo "📋 Showing $(ENV) logs..."
-	$(COMPOSE_CMD) logs -f $(API_SERVICE) $(PROCESSOR_SERVICE)
+logs: ## View all services logs (usage: make logs [dev|prod])
+	@echo "📋 Showing all services logs..."
+	$(COMPOSE_CMD) logs -f $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+
+logs-web: ## View Web service logs (usage: make logs-web [dev|prod])
+	@echo "📋 Showing Web service logs..."
+	$(COMPOSE_CMD) logs -f $(WEB_SERVICE)
 
 logs-api: ## View API service logs (usage: make logs-api [dev|prod])
 	@echo "📋 Showing API service logs..."
@@ -195,7 +207,7 @@ down: ## Stop services (usage: make down [dev|prod|all])
 ifeq ($(ENV),all)
 	$(COMPOSE_CMD) down
 else
-	$(COMPOSE_CMD) stop $(API_SERVICE) $(PROCESSOR_SERVICE)
+	$(COMPOSE_CMD) stop $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
 endif
 
 docker-clean: ## Clean Docker resources

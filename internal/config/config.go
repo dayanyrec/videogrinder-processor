@@ -11,6 +11,7 @@ type Config struct {
 	OutputsDir   string
 	TempDir      string
 	ProcessorURL string
+	APIURL       string
 }
 
 func New() *Config {
@@ -20,6 +21,7 @@ func New() *Config {
 		OutputsDir:   getEnv("OUTPUTS_DIR", "outputs"),
 		TempDir:      getEnv("TEMP_DIR", "temp"),
 		ProcessorURL: getEnv("PROCESSOR_URL", "http://localhost:8082"),
+		APIURL:       getEnv("API_URL", "http://localhost:8081"),
 	}
 }
 

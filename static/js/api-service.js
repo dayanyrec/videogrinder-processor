@@ -1,7 +1,8 @@
 class ApiService {
   constructor() {
+    this.baseURL = `${window.location.protocol}//${window.location.hostname}:8081`
     this.endpoints = {
-      videos: '/api/v1/videos'
+      videos: `${this.baseURL}/api/v1/videos`
     }
   }
 

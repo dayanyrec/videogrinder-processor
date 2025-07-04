@@ -16,17 +16,11 @@ func main() {
 	cfg := config.New()
 	cfg.CreateDirectories()
 
-	// Override port for processor service
-	if cfg.Port == "8080" {
-		cfg.Port = "8082"
-	}
-
 	videoService := services.NewVideoService(cfg)
 	processorHandlers := processor.NewProcessorHandlers(videoService, cfg)
 
 	r := gin.Default()
 
-	// CORS middleware
 	r.Use(func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
@@ -40,7 +34,6 @@ func main() {
 		c.Next()
 	})
 
-	// Processor endpoints
 	r.POST("/process", processorHandlers.ProcessVideoUpload)
 	r.GET("/health", processorHandlers.GetProcessorStatus)
 

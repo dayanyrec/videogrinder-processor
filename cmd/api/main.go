@@ -34,12 +34,6 @@ func main() {
 
 	r.Static("/uploads", "./"+cfg.UploadsDir)
 	r.Static("/outputs", "./"+cfg.OutputsDir)
-	r.Static("/static", "./static")
-
-	// Root endpoint - serve index.html
-	r.GET("/", func(c *gin.Context) {
-		c.File("./static/index.html")
-	})
 
 	r.GET("/health", apiHandlers.GetAPIHealth)
 
@@ -50,7 +44,7 @@ func main() {
 	apiV1.GET("/videos/:filename/download", apiHandlers.GetVideoDownload)
 	apiV1.DELETE("/videos/:filename", apiHandlers.DeleteVideo)
 
-	fmt.Println("🎬 API Service iniciado na porta", cfg.Port)
+	fmt.Printf("🎬 API Service iniciado na porta %s\n", cfg.Port)
 	fmt.Printf("🔧 Processor URL configurado: %s\n", cfg.ProcessorURL)
 
 	log.Fatal(r.Run(":" + cfg.Port))

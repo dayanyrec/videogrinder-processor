@@ -27,7 +27,6 @@ linters:
     - bodyclose
     - gosec
     - prealloc
-    - exportloopref
     - nolintlint
     - whitespace
     - godot
@@ -97,10 +96,10 @@ issues:
       source: "^//go:generate "
   max-issues-per-linter: 0
   max-same-issues: 0
+  uniq-by-line: true
 
 output:
   formats:
     - format: colored-line-number
   print-issued-lines: true
   print-linter-name: true
-  uniq-by-line: true

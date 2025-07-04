@@ -1,4 +1,4 @@
-.PHONY: help setup run run-api run-web run-processor test test-api test-processor test-services test-utils test-clients test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-ci lint-ci test-ci test-api-ci test-processor-ci check logs logs-web logs-api logs-processor down docker-clean
+.PHONY: help setup run run-api run-web run-processor test test-api test-processor test-services test-utils test-clients test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-ci lint-ci test-ci test-api-ci test-processor-ci test-js-ci check check-ci logs logs-web logs-api logs-processor down docker-clean health health-ci
 
 DOCKER_IMAGE=videogrinder-processor
 ENV ?= $(word 2,$(MAKECMDGOALS))
@@ -50,12 +50,15 @@ help: ## Show available commands
 	@echo '  make logs prod    # View production logs'
 	@echo '  make down dev     # Stop dev services'
 	@echo ''
-	@echo 'CI/CD Commands (work inside Docker containers):'
+	@echo 'CI/CD Commands (work without Docker - faster for CI):'
+	@echo '  make check-ci     # Run all quality checks (CI-friendly)'
 	@echo '  make fmt-ci       # Format code (CI-friendly)'
 	@echo '  make lint-ci      # Lint code (CI-friendly)'
-	@echo '  make test-ci      # Run all tests (CI-friendly)'
+	@echo '  make test-ci      # Run all Go tests (CI-friendly)'
+	@echo '  make test-js-ci   # Run JS tests (CI-friendly)'
 	@echo '  make test-api-ci  # Run API tests (CI-friendly)'
 	@echo '  make test-processor-ci # Run processor tests (CI-friendly)'
+	@echo '  make health-ci    # Check app health (CI-friendly)'
 	@echo ''
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
@@ -184,7 +187,22 @@ test-processor-ci: ## Run processor service unit tests for CI
 	@echo "🧪 Running processor service unit tests..."
 	GOFLAGS='-buildvcs=false' go test -v ./processor/internal/...
 
+test-js-ci: ## Run JavaScript unit tests for CI (without Docker Compose)
+	@echo "🧪 Running JavaScript unit tests..."
+	cd web && npm install
+	cd web && npm test
+
 check: fmt lint test test-js ## Run all quality checks
+
+check-ci: fmt-ci lint-ci test-ci test-js-ci ## Run all quality checks for CI (without Docker Compose)
+
+health: ## Check application health (usage: make health [dev|prod])
+	@echo "🏥 Checking application health..."
+	$(COMPOSE_CMD) --profile tools run --rm --network host videogrinder-devtools sh -c "curl -f http://localhost:8080/health || echo 'Health check failed'"
+
+health-ci: ## Check application health for CI (without Docker Compose)
+	@echo "🏥 Checking application health..."
+	curl -f http://localhost:8080/health || echo 'Health check failed'
 
 logs: ## View all services logs (usage: make logs [dev|prod])
 	@echo "📋 Showing all services logs..."

@@ -62,7 +62,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 
 ### 2.2 - API Design e Qualidade
 - [x] Extrair API para módulo interno
-- [ ] Melhorar implementação da API tornando REST
+- [x] Melhorar implementação da API tornando REST
 - [ ] Cobrir API com testes unitários
 - [ ] Cobrir API com testes de integração
 - [ ] Documentar API com Swagger/OpenAPI automático

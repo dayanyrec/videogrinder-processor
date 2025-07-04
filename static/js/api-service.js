@@ -1,13 +1,12 @@
 class ApiService {
   constructor() {
     this.endpoints = {
-      upload: '/upload',
-      status: '/api/status'
+      videos: '/api/v1/videos'
     }
   }
 
   async uploadVideo(formData) {
-    const response = await fetch(this.endpoints.upload, {
+    const response = await fetch(this.endpoints.videos, {
       method: 'POST',
       body: formData
     })
@@ -15,8 +14,15 @@ class ApiService {
   }
 
   async getFilesList() {
-    const response = await fetch(this.endpoints.status)
+    const response = await fetch(this.endpoints.videos)
     return await response.json()
+  }
+
+  async deleteVideo(filename) {
+    const response = await fetch(`${this.endpoints.videos}/${filename}`, {
+      method: 'DELETE'
+    })
+    return response.ok
   }
 
   createFormData(file) {

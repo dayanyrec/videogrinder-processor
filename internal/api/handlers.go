@@ -29,7 +29,7 @@ func NewAPIHandlers(videoService *services.VideoService, cfg *config.Config) *AP
 	}
 }
 
-func (ah *APIHandlers) HandleVideoUpload(c *gin.Context) {
+func (ah *APIHandlers) CreateVideo(c *gin.Context) {
 	file, header, err := c.Request.FormFile("video")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ProcessingResult{
@@ -96,29 +96,13 @@ func (ah *APIHandlers) HandleVideoUpload(c *gin.Context) {
 		if err := os.Remove(videoPath); err != nil {
 			log.Printf("Warning: Failed to remove video file %s: %v", videoPath, err)
 		}
+		c.JSON(http.StatusCreated, result)
+	} else {
+		c.JSON(http.StatusUnprocessableEntity, result)
 	}
-
-	c.JSON(http.StatusOK, result)
 }
 
-func (ah *APIHandlers) HandleDownload(c *gin.Context) {
-	filename := c.Param("filename")
-	filePath := filepath.Join(ah.config.OutputsDir, filename)
-
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Arquivo não encontrado"})
-		return
-	}
-
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Content-Disposition", "attachment; filename="+filename)
-	c.Header("Content-Type", "application/zip")
-
-	c.File(filePath)
-}
-
-func (ah *APIHandlers) HandleStatus(c *gin.Context) {
+func (ah *APIHandlers) GetVideos(c *gin.Context) {
 	files, err := filepath.Glob(filepath.Join(ah.config.OutputsDir, "*.zip"))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao listar arquivos"})
@@ -136,14 +120,48 @@ func (ah *APIHandlers) HandleStatus(c *gin.Context) {
 			"filename":     filepath.Base(file),
 			"size":         info.Size(),
 			"created_at":   info.ModTime().Format("2006-01-02 15:04:05"),
-			"download_url": "/download/" + filepath.Base(file),
+			"download_url": "/api/v1/videos/" + filepath.Base(file) + "/download",
 		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"files": results,
-		"total": len(results),
+		"videos": results,
+		"total":  len(results),
 	})
+}
+
+func (ah *APIHandlers) GetVideoDownload(c *gin.Context) {
+	filename := c.Param("filename")
+	filePath := filepath.Join(ah.config.OutputsDir, filename)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Arquivo não encontrado"})
+		return
+	}
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Type", "application/zip")
+
+	c.File(filePath)
+}
+
+func (ah *APIHandlers) DeleteVideo(c *gin.Context) {
+	filename := c.Param("filename")
+	filePath := filepath.Join(ah.config.OutputsDir, filename)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Arquivo não encontrado"})
+		return
+	}
+
+	if err := os.Remove(filePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao deletar arquivo"})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
 }
 
 func IsValidVideoFile(filename string) bool {

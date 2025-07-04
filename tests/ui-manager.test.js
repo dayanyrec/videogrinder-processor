@@ -16,7 +16,7 @@ describe('UIManager Class', () => {
   })
 
   describe('constructor', () => {
-    test('should initialize with correct DOM elements', () => {
+    test('should initialize with all required DOM elements properly bound', () => {
       expect(uiManager.elements.loading).toBeTruthy()
       expect(uiManager.elements.result).toBeTruthy()
       expect(uiManager.elements.filesList).toBeTruthy()
@@ -26,7 +26,7 @@ describe('UIManager Class', () => {
   })
 
   describe('showResult', () => {
-    test('should display success message correctly', () => {
+    test('should display success message with correct styling and visibility', () => {
       const message = 'Upload successful!'
       const type = 'success'
 
@@ -37,7 +37,7 @@ describe('UIManager Class', () => {
       expect(uiManager.elements.result.style.display).toBe('block')
     })
 
-    test('should display error message correctly', () => {
+    test('should display error message with correct styling and visibility', () => {
       const message = 'Upload failed!'
       const type = 'error'
 
@@ -48,7 +48,7 @@ describe('UIManager Class', () => {
       expect(uiManager.elements.result.style.display).toBe('block')
     })
 
-    test('should handle HTML content in message', () => {
+    test('should properly render HTML content within result message', () => {
       const message = '<strong>Success!</strong> File uploaded.'
       const type = 'success'
 
@@ -60,7 +60,7 @@ describe('UIManager Class', () => {
   })
 
   describe('showLoading', () => {
-    test('should show loading and hide result', () => {
+    test('should show loading indicator and hide result message', () => {
       uiManager.showLoading()
 
       expect(uiManager.elements.loading.style.display).toBe('block')
@@ -69,7 +69,7 @@ describe('UIManager Class', () => {
   })
 
   describe('hideLoading', () => {
-    test('should hide loading element', () => {
+    test('should hide loading indicator from user interface', () => {
       uiManager.hideLoading()
 
       expect(uiManager.elements.loading.style.display).toBe('none')
@@ -77,7 +77,7 @@ describe('UIManager Class', () => {
   })
 
   describe('displayFilesList', () => {
-    test('should display files list when files exist', () => {
+    test('should render formatted files list with download links when files exist', () => {
       const mockFiles = [
         {
           filename: 'test-video.mp4',
@@ -106,21 +106,21 @@ describe('UIManager Class', () => {
       expect(filesListDiv.innerHTML).toContain('class="download-btn"')
     })
 
-    test('should display empty message when no files exist', () => {
+    test('should display empty state message when no processed files exist', () => {
       uiManager.displayFilesList([])
 
       const filesListDiv = uiManager.elements.filesList
       expect(filesListDiv.innerHTML).toContain('Nenhum arquivo processado ainda.')
     })
 
-    test('should display empty message when files is null', () => {
+    test('should display empty state message when files list is null', () => {
       uiManager.displayFilesList(null)
 
       const filesListDiv = uiManager.elements.filesList
       expect(filesListDiv.innerHTML).toContain('Nenhum arquivo processado ainda.')
     })
 
-    test('should display empty message when files is undefined', () => {
+    test('should display empty state message when files list is undefined', () => {
       uiManager.displayFilesList(undefined)
 
       const filesListDiv = uiManager.elements.filesList
@@ -129,7 +129,7 @@ describe('UIManager Class', () => {
   })
 
   describe('displayFilesError', () => {
-    test('should display error message for files loading', () => {
+    test('should display error message when files loading fails', () => {
       uiManager.displayFilesError()
 
       const filesListDiv = uiManager.elements.filesList
@@ -139,7 +139,7 @@ describe('UIManager Class', () => {
   })
 
   describe('getSelectedFile', () => {
-    test('should return selected file', () => {
+    test('should return the file selected by user from file input', () => {
       const mockFile = new File(['content'], 'test.mp4', { type: 'video/mp4' })
 
       Object.defineProperty(uiManager.elements.videoFile, 'files', {
@@ -151,7 +151,7 @@ describe('UIManager Class', () => {
       expect(selectedFile).toBe(mockFile)
     })
 
-    test('should return undefined when no file selected', () => {
+    test('should return undefined when no file is selected', () => {
       Object.defineProperty(uiManager.elements.videoFile, 'files', {
         value: [],
         writable: false
@@ -163,7 +163,7 @@ describe('UIManager Class', () => {
   })
 
   describe('getUploadForm', () => {
-    test('should return upload form element', () => {
+    test('should return the upload form DOM element for event binding', () => {
       const form = uiManager.getUploadForm()
       expect(form).toBe(uiManager.elements.uploadForm)
       expect(form.tagName).toBe('FORM')

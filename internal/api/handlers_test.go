@@ -45,7 +45,7 @@ func setupTestHandlers() (handlers *APIHandlers, cleanup func()) {
 	return
 }
 
-func TestNewAPIHandlers(t *testing.T) {
+func TestNewAPIHandlers_ShouldInitializeHandlersWithCorrectDependencies(t *testing.T) {
 	cfg := &config.Config{
 		UploadsDir: "uploads",
 		OutputsDir: "outputs",
@@ -60,7 +60,7 @@ func TestNewAPIHandlers(t *testing.T) {
 	assert.Equal(t, cfg, handlers.config)
 }
 
-func TestAPIHandlers_HandleVideoUpload_InvalidFile(t *testing.T) {
+func TestCreateVideo_ShouldReturnBadRequestWhenUploadingInvalidFileExtension(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -75,11 +75,11 @@ func TestAPIHandlers_HandleVideoUpload_InvalidFile(t *testing.T) {
 	part.Write([]byte("not a video"))
 	writer.Close()
 
-	req := httptest.NewRequest("POST", "/upload", body)
+	req := httptest.NewRequest("POST", "/api/v1/videos", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	c.Request = req
 
-	handlers.HandleVideoUpload(c)
+	handlers.CreateVideo(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 
@@ -90,7 +90,7 @@ func TestAPIHandlers_HandleVideoUpload_InvalidFile(t *testing.T) {
 	assert.Contains(t, response.Message, "Formato de arquivo não suportado")
 }
 
-func TestAPIHandlers_HandleVideoUpload_NoFile(t *testing.T) {
+func TestCreateVideo_ShouldReturnBadRequestWhenNoFileIsProvided(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -98,10 +98,10 @@ func TestAPIHandlers_HandleVideoUpload_NoFile(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
-	req := httptest.NewRequest("POST", "/upload", http.NoBody)
+	req := httptest.NewRequest("POST", "/api/v1/videos", http.NoBody)
 	c.Request = req
 
-	handlers.HandleVideoUpload(c)
+	handlers.CreateVideo(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 
@@ -112,7 +112,7 @@ func TestAPIHandlers_HandleVideoUpload_NoFile(t *testing.T) {
 	assert.Contains(t, response.Message, "Erro ao receber arquivo")
 }
 
-func TestAPIHandlers_HandleVideoUpload_ValidFile(t *testing.T) {
+func TestCreateVideo_ShouldReturnUnprocessableEntityWhenVideoProcessingFails(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -127,13 +127,13 @@ func TestAPIHandlers_HandleVideoUpload_ValidFile(t *testing.T) {
 	part.Write([]byte("fake video content"))
 	writer.Close()
 
-	req := httptest.NewRequest("POST", "/upload", body)
+	req := httptest.NewRequest("POST", "/api/v1/videos", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	c.Request = req
 
-	handlers.HandleVideoUpload(c)
+	handlers.CreateVideo(c)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 
 	var response models.ProcessingResult
 	err = json.Unmarshal(w.Body.Bytes(), &response)
@@ -142,7 +142,7 @@ func TestAPIHandlers_HandleVideoUpload_ValidFile(t *testing.T) {
 	assert.NotEmpty(t, response.Message)
 }
 
-func TestAPIHandlers_HandleDownload_FileNotFound(t *testing.T) {
+func TestGetVideoDownload_ShouldReturnNotFoundWhenRequestedFileDoesNotExist(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -152,7 +152,7 @@ func TestAPIHandlers_HandleDownload_FileNotFound(t *testing.T) {
 
 	c.Params = gin.Params{gin.Param{Key: "filename", Value: "nonexistent.zip"}}
 
-	handlers.HandleDownload(c)
+	handlers.GetVideoDownload(c)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 
@@ -162,7 +162,7 @@ func TestAPIHandlers_HandleDownload_FileNotFound(t *testing.T) {
 	assert.Equal(t, "Arquivo não encontrado", response["error"])
 }
 
-func TestAPIHandlers_HandleDownload_FileExists(t *testing.T) {
+func TestGetVideoDownload_ShouldReturnFileWithCorrectHeadersWhenFileExists(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -174,11 +174,11 @@ func TestAPIHandlers_HandleDownload_FileExists(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
-	req := httptest.NewRequest("GET", "/download/test.zip", http.NoBody)
+	req := httptest.NewRequest("GET", "/api/v1/videos/test.zip/download", http.NoBody)
 	c.Request = req
 	c.Params = gin.Params{gin.Param{Key: "filename", Value: "test.zip"}}
 
-	handlers.HandleDownload(c)
+	handlers.GetVideoDownload(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/zip", w.Header().Get("Content-Type"))
@@ -186,7 +186,7 @@ func TestAPIHandlers_HandleDownload_FileExists(t *testing.T) {
 	assert.Equal(t, "test zip content", w.Body.String())
 }
 
-func TestAPIHandlers_HandleStatus_NoFiles(t *testing.T) {
+func TestGetVideos_ShouldReturnEmptyListWhenNoProcessedVideosExist(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -194,7 +194,7 @@ func TestAPIHandlers_HandleStatus_NoFiles(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
-	handlers.HandleStatus(c)
+	handlers.GetVideos(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
@@ -202,10 +202,10 @@ func TestAPIHandlers_HandleStatus_NoFiles(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, float64(0), response["total"])
-	assert.Empty(t, response["files"])
+	assert.Empty(t, response["videos"])
 }
 
-func TestAPIHandlers_HandleStatus_WithFiles(t *testing.T) {
+func TestGetVideos_ShouldReturnListWithCorrectCountWhenMultipleVideosExist(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -220,7 +220,7 @@ func TestAPIHandlers_HandleStatus_WithFiles(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
-	handlers.HandleStatus(c)
+	handlers.GetVideos(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
@@ -229,103 +229,145 @@ func TestAPIHandlers_HandleStatus_WithFiles(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, float64(2), response["total"])
 
-	files := response["files"].([]interface{})
-	assert.Len(t, files, 2)
+	videos := response["videos"].([]interface{})
+	assert.Len(t, videos, 2)
 }
 
-func TestIsValidVideoFile(t *testing.T) {
+func TestDeleteVideo_ShouldReturnNotFoundWhenAttemptingToDeleteNonExistentFile(t *testing.T) {
+	handlers, cleanup := setupTestHandlers()
+	defer cleanup()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	c.Params = gin.Params{gin.Param{Key: "filename", Value: "nonexistent.zip"}}
+
+	handlers.DeleteVideo(c)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var response map[string]string
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "Arquivo não encontrado", response["error"])
+}
+
+func TestDeleteVideo_ShouldReturnNoContentAndRemoveFileWhenDeletingExistingFile(t *testing.T) {
+	handlers, cleanup := setupTestHandlers()
+	defer cleanup()
+
+	testFile := filepath.Join(handlers.config.OutputsDir, "test.zip")
+	err := os.WriteFile(testFile, []byte("test zip content"), 0644)
+	require.NoError(t, err)
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	c.Params = gin.Params{gin.Param{Key: "filename", Value: "test.zip"}}
+
+	handlers.DeleteVideo(c)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+
+	_, err = os.Stat(testFile)
+	assert.True(t, os.IsNotExist(err))
+}
+
+func TestIsValidVideoFile_ShouldValidateVideoFileExtensionsCorrectly(t *testing.T) {
 	tests := []struct {
 		name     string
 		filename string
 		expected bool
 	}{
 		{
-			name:     "mp4 file",
+			name:     "should accept mp4 file",
 			filename: "test.mp4",
 			expected: true,
 		},
 		{
-			name:     "avi file",
+			name:     "should accept avi file",
 			filename: "test.avi",
 			expected: true,
 		},
 		{
-			name:     "mov file",
+			name:     "should accept mov file",
 			filename: "test.mov",
 			expected: true,
 		},
 		{
-			name:     "mkv file",
+			name:     "should accept mkv file",
 			filename: "test.mkv",
 			expected: true,
 		},
 		{
-			name:     "wmv file",
+			name:     "should accept wmv file",
 			filename: "test.wmv",
 			expected: true,
 		},
 		{
-			name:     "flv file",
+			name:     "should accept flv file",
 			filename: "test.flv",
 			expected: true,
 		},
 		{
-			name:     "webm file",
+			name:     "should accept webm file",
 			filename: "test.webm",
 			expected: true,
 		},
 		{
-			name:     "uppercase mp4",
+			name:     "should accept uppercase mp4 extension",
 			filename: "test.MP4",
 			expected: true,
 		},
 		{
-			name:     "mixed case avi",
+			name:     "should accept mixed case avi extension",
 			filename: "test.AVI",
 			expected: true,
 		},
 		{
-			name:     "txt file",
+			name:     "should reject txt file",
 			filename: "test.txt",
 			expected: false,
 		},
 		{
-			name:     "jpg file",
+			name:     "should reject jpg file",
 			filename: "test.jpg",
 			expected: false,
 		},
 		{
-			name:     "png file",
+			name:     "should reject png file",
 			filename: "test.png",
 			expected: false,
 		},
 		{
-			name:     "pdf file",
+			name:     "should reject pdf file",
 			filename: "test.pdf",
 			expected: false,
 		},
 		{
-			name:     "no extension",
+			name:     "should reject file without extension",
 			filename: "test",
 			expected: false,
 		},
 		{
-			name:     "empty filename",
+			name:     "should reject empty filename",
 			filename: "",
 			expected: false,
 		},
 		{
-			name:     "only extension",
+			name:     "should accept extension-only mp4 filename",
 			filename: ".mp4",
 			expected: true,
 		},
 		{
-			name:     "path with video file",
+			name:     "should accept video file with path",
 			filename: "path/to/test.mp4",
 			expected: true,
 		},
 		{
-			name:     "windows path with video file",
+			name:     "should accept video file with windows path",
 			filename: "C:\\path\\to\\test.mp4",
 			expected: true,
 		},
@@ -339,7 +381,7 @@ func TestIsValidVideoFile(t *testing.T) {
 	}
 }
 
-func TestAPIHandlers_Integration_FullWorkflow(t *testing.T) {
+func TestAPIHandlers_Integration_ShouldProvideFullWorkflowBehavior(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
@@ -351,7 +393,7 @@ func TestAPIHandlers_Integration_FullWorkflow(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	handlers.HandleStatus(c)
+	handlers.GetVideos(c)
 	assert.Equal(t, http.StatusOK, w.Code)
 	var statusResponse map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &statusResponse)
@@ -360,11 +402,11 @@ func TestAPIHandlers_Integration_FullWorkflow(t *testing.T) {
 	w = httptest.NewRecorder()
 	c, _ = gin.CreateTestContext(w)
 	c.Params = gin.Params{gin.Param{Key: "filename", Value: "test.zip"}}
-	handlers.HandleDownload(c)
+	handlers.GetVideoDownload(c)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
-func BenchmarkAPIHandlers_HandleStatus(b *testing.B) {
+func BenchmarkGetVideos_ShouldPerformEfficientlyUnderLoad(b *testing.B) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
@@ -374,6 +416,6 @@ func BenchmarkAPIHandlers_HandleStatus(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
-		handlers.HandleStatus(c)
+		handlers.GetVideos(c)
 	}
 }

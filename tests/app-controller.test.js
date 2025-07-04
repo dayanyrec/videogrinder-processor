@@ -11,7 +11,8 @@ const mockUIManager = {
 const mockApiService = {
   createFormData: jest.fn(),
   uploadVideo: jest.fn(),
-  getFilesList: jest.fn()
+  getFilesList: jest.fn(),
+  deleteVideo: jest.fn()
 }
 
 const mockUtils = {
@@ -34,17 +35,17 @@ describe('AppController Class', () => {
   })
 
   describe('constructor', () => {
-    test('should initialize with UIManager and ApiService', () => {
+    test('should initialize with UIManager and ApiService dependencies', () => {
       expect(appController.uiManager).toBeDefined()
       expect(appController.apiService).toBeDefined()
     })
   })
 
   describe('init', () => {
-    test('should load files list and setup event listeners', async() => {
+    test('should load files list and setup event listeners during initialization', async() => {
       const mockForm = { addEventListener: jest.fn() }
       mockUIManager.getUploadForm.mockReturnValue(mockForm)
-      mockApiService.getFilesList.mockResolvedValue({ files: [] })
+      mockApiService.getFilesList.mockResolvedValue({ videos: [], total: 0 })
 
       await appController.init()
 
@@ -54,7 +55,7 @@ describe('AppController Class', () => {
       expect(mockForm.addEventListener).toHaveBeenCalledWith('submit', expect.any(Function))
     })
 
-    test('should handle error during initialization', async() => {
+    test('should display error message when API fails during initialization', async() => {
       const mockForm = { addEventListener: jest.fn() }
       mockUIManager.getUploadForm.mockReturnValue(mockForm)
       mockApiService.getFilesList.mockRejectedValue(new Error('API error'))
@@ -66,7 +67,7 @@ describe('AppController Class', () => {
   })
 
   describe('handleUpload', () => {
-    test('should handle successful upload', async() => {
+    test('should process successful video upload and display result with download link', async() => {
       const mockEvent = { preventDefault: jest.fn() }
       const mockFile = new File(['content'], 'test.mp4', { type: 'video/mp4' })
       const mockFormData = new FormData()
@@ -80,7 +81,7 @@ describe('AppController Class', () => {
         zip_path: 'frames_123.zip'
       })
       mockUtils.createDownloadLink.mockReturnValue('<a href="/download/frames_123.zip">Download</a>')
-      mockApiService.getFilesList.mockResolvedValue({ files: [] })
+      mockApiService.getFilesList.mockResolvedValue({ videos: [], total: 0 })
 
       await appController.handleUpload(mockEvent)
 
@@ -95,7 +96,7 @@ describe('AppController Class', () => {
       expect(mockApiService.getFilesList).toHaveBeenCalled()
     })
 
-    test('should handle validation error', async() => {
+    test('should display validation error message when file validation fails', async() => {
       const mockEvent = { preventDefault: jest.fn() }
 
       mockUIManager.getSelectedFile.mockReturnValue(null)
@@ -108,7 +109,7 @@ describe('AppController Class', () => {
       expect(mockUIManager.showLoading).not.toHaveBeenCalled()
     })
 
-    test('should handle upload failure', async() => {
+    test('should display error message when server returns upload failure', async() => {
       const mockEvent = { preventDefault: jest.fn() }
       const mockFile = new File(['content'], 'test.mp4', { type: 'video/mp4' })
       const mockFormData = new FormData()
@@ -128,7 +129,7 @@ describe('AppController Class', () => {
       expect(mockUIManager.showResult).toHaveBeenCalledWith('Erro: Upload failed!', 'error')
     })
 
-    test('should handle network error', async() => {
+    test('should display connection error message when network request fails', async() => {
       const mockEvent = { preventDefault: jest.fn() }
       const mockFile = new File(['content'], 'test.mp4', { type: 'video/mp4' })
       const mockFormData = new FormData()
@@ -147,29 +148,45 @@ describe('AppController Class', () => {
   })
 
   describe('loadFilesList', () => {
-    test('should load and display files list', async() => {
-      const mockFiles = [
-        { filename: 'test.mp4', size: 1024, created_at: '2024-01-01', download_url: '/download/test.zip' }
+    test('should load and display videos list from API successfully', async() => {
+      const mockVideos = [
+        { filename: 'test.mp4', size: 1024, created_at: '2024-01-01', download_url: '/api/v1/videos/test.zip/download' }
       ]
-      mockApiService.getFilesList.mockResolvedValue({ files: mockFiles })
+      mockApiService.getFilesList.mockResolvedValue({ videos: mockVideos, total: 1 })
 
       await appController.loadFilesList()
 
       expect(mockApiService.getFilesList).toHaveBeenCalled()
-      expect(mockUIManager.displayFilesList).toHaveBeenCalledWith(mockFiles)
+      expect(mockUIManager.displayFilesList).toHaveBeenCalledWith(mockVideos)
     })
 
-    test('should handle error when loading files list', async() => {
+    test('should display error message when API fails to load files list', async() => {
       mockApiService.getFilesList.mockRejectedValue(new Error('API error'))
 
       await appController.loadFilesList()
 
       expect(mockUIManager.displayFilesError).toHaveBeenCalled()
     })
+
+    test('should display empty list when no videos are available', async() => {
+      mockApiService.getFilesList.mockResolvedValue({ videos: [], total: 0 })
+
+      await appController.loadFilesList()
+
+      expect(mockUIManager.displayFilesList).toHaveBeenCalledWith([])
+    })
+
+    test('should handle null videos list response from server', async() => {
+      mockApiService.getFilesList.mockResolvedValue({ videos: null, total: 0 })
+
+      await appController.loadFilesList()
+
+      expect(mockUIManager.displayFilesList).toHaveBeenCalledWith(null)
+    })
   })
 
   describe('showResult', () => {
-    test('should delegate to UIManager showResult', () => {
+    test('should delegate result display to UIManager with correct parameters', () => {
       const message = 'Test message'
       const type = 'success'
 

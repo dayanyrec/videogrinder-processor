@@ -17,9 +17,9 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
     })
 
     it('should load status endpoint', () => {
-      cy.request('/api/status').then((response) => {
+      cy.request('/api/v1/videos').then((response) => {
         expect(response.status).to.eq(200)
-        expect(response.body).to.have.property('files')
+        expect(response.body).to.have.property('videos')
         expect(response.body).to.have.property('total')
       })
     })
@@ -59,7 +59,8 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
       cy.get('#filesList').should('contain', 'frames_')
       cy.get('#filesList').should('contain', '.zip')
 
-      cy.get('#filesList a[href*="/download/"]').should('exist')
+      cy.get('#filesList a[href*="/api/v1/videos/"]').should('exist')
+      cy.get('#filesList a[href*="/download"]').should('exist')
     })
   })
 
@@ -81,7 +82,7 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
     })
 
     it('should handle server errors gracefully', () => {
-      cy.intercept('POST', '/upload', {
+      cy.intercept('POST', '/api/v1/videos', {
         statusCode: 500,
         body: { success: false, message: 'Erro interno do servidor' }
       }).as('uploadError')
@@ -104,7 +105,7 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
     it('should allow downloading processed files', () => {
       cy.uploadAndProcess('test-video-valid.mp4')
 
-      cy.get('#filesList a[href*="/download/"]').first().then(($link) => {
+      cy.get('#filesList a[href*="/api/v1/videos/"]').first().then(($link) => {
         cy.request($link.attr('href')).then((response) => {
           expect(response.status).to.eq(200)
           expect(response.headers['content-type']).to.eq('application/zip')
@@ -115,10 +116,11 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
 
     it('should handle non-existent file downloads', () => {
       cy.request({
-        url: '/download/non-existent-file.zip',
+        url: '/api/v1/videos/non-existent-file.zip/download',
         failOnStatusCode: false
       }).then((response) => {
         expect(response.status).to.eq(404)
+        expect(response.body).to.have.property('error')
         expect(response.body.error).to.contain('Arquivo não encontrado')
       })
     })
@@ -163,7 +165,7 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
     })
 
     it('should handle CORS correctly', () => {
-      cy.request('/api/status').then((response) => {
+      cy.request('/api/v1/videos').then((response) => {
         expect(response.headers).to.have.property('access-control-allow-origin')
       })
     })
@@ -173,9 +175,9 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
 // Separate test suite for API testing
 describe('VideoGrinder - API E2E Tests', () => {
   it('should return proper status information', () => {
-    cy.request('/api/status').then((response) => {
+    cy.request('/api/v1/videos').then((response) => {
       expect(response.status).to.eq(200)
-      expect(response.body).to.have.property('files').that.is.an('array')
+      expect(response.body).to.have.property('videos').that.is.an('array')
       expect(response.body).to.have.property('total').that.is.a('number')
     })
   })
@@ -187,11 +189,11 @@ describe('VideoGrinder - API E2E Tests', () => {
 
     cy.request({
       method: 'POST',
-      url: '/upload',
+      url: '/api/v1/videos',
       body: formData,
       failOnStatusCode: false
     }).then((response) => {
-      expect([200, 400]).to.include(response.status)
+      expect([201, 422, 400]).to.include(response.status)
     })
   })
 })

@@ -50,7 +50,7 @@ class AppController {
   async loadFilesList() {
     try {
       const data = await this.apiService.getFilesList()
-      this.uiManager.displayFilesList(data.files)
+      this.uiManager.displayFilesList(data.videos)
     } catch (_error) {
       this.uiManager.displayFilesError()
     }

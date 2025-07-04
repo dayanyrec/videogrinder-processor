@@ -172,8 +172,8 @@ lint-ci: ## Check code quality for CI (without Docker Compose)
 	@echo "🔍 Running Go linters..."
 	GOFLAGS='-buildvcs=false' golangci-lint run
 	@echo "🔍 Running JS linters..."
-	npm install
-	npx eslint . --ext .js
+	cd web && npm install
+	cd web && npx eslint . --ext .js
 
 test-ci: ## Run all Go unit tests for CI (without Docker Compose)
 	@echo "🧪 Running all Go unit tests..."

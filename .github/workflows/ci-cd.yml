@@ -114,3 +114,4 @@ jobs:
 
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "🚀 **Pipeline Status**: ${{ needs.quality-checks.result == 'success' && needs.build-and-health.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
+

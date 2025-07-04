@@ -70,6 +70,7 @@ help: ## Show this help message
 	@echo ''
 	@echo 'Maintenance:'
 	@echo '  make docker-clean # Clean Docker resources'
+
 	@echo ''
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
@@ -217,9 +218,17 @@ logs-tail: ## Show last 50 lines of all services logs (usage: make logs-tail [de
 	@echo "📋 Showing last 50 lines of all services logs..."
 	$(COMPOSE_CMD) $(LOGS_TAIL_CMD) $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
 
+logs-tail: ## Show last 50 lines of all services logs (usage: make logs-tail [dev|prod])
+	@echo "📋 Showing last 50 lines of all services logs..."
+	$(COMPOSE_CMD) logs --tail=50 $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+
 logs-web: ## View Web service logs (usage: make logs-web [dev|prod])
 	@echo "📋 Showing Web service logs..."
 	$(COMPOSE_CMD) $(LOGS_FOLLOW_CMD) $(WEB_SERVICE)
+
+logs-web-tail: ## Show last 30 lines of Web service logs (usage: make logs-web-tail [dev|prod])
+	@echo "📋 Showing last 30 lines of Web service logs..."
+	$(COMPOSE_CMD) logs --tail=30 $(WEB_SERVICE)
 
 logs-web-tail: ## Show last 30 lines of Web service logs (usage: make logs-web-tail [dev|prod])
 	@echo "📋 Showing last 30 lines of Web service logs..."
@@ -233,9 +242,17 @@ logs-api-tail: ## Show last 30 lines of API service logs (usage: make logs-api-t
 	@echo "📋 Showing last 30 lines of API service logs..."
 	$(COMPOSE_CMD) logs --tail=30 $(API_SERVICE)
 
+logs-api-tail: ## Show last 30 lines of API service logs (usage: make logs-api-tail [dev|prod])
+	@echo "📋 Showing last 30 lines of API service logs..."
+	$(COMPOSE_CMD) logs --tail=30 $(API_SERVICE)
+
 logs-processor: ## View processor service logs (usage: make logs-processor [dev|prod])
 	@echo "📋 Showing processor service logs..."
 	$(COMPOSE_CMD) $(LOGS_FOLLOW_CMD) $(PROCESSOR_SERVICE)
+
+logs-processor-tail: ## Show last 30 lines of processor service logs (usage: make logs-processor-tail [dev|prod])
+	@echo "📋 Showing last 30 lines of processor service logs..."
+	$(COMPOSE_CMD) logs --tail=30 $(PROCESSOR_SERVICE)
 
 logs-processor-tail: ## Show last 30 lines of processor service logs (usage: make logs-processor-tail [dev|prod])
 	@echo "📋 Showing last 30 lines of processor service logs..."

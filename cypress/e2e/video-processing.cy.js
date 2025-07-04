@@ -104,11 +104,35 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
   })
 
   describe('File Download', () => {
-    it('should allow downloading processed files', () => {
+    it('should allow downloading processed files via direct URL request', () => {
       cy.uploadAndProcess('test-video-valid.mp4')
 
-      cy.get('#filesList a[href*="/api/v1/videos/"]').first().then(($link) => {
-        const downloadUrl = $link.attr('href').replace('/api/v1/videos/', `${API_BASE_URL}/api/v1/videos/`)
+      cy.get('#filesList a[href*="localhost:8081/api/v1/videos/"]').first().then(($link) => {
+        const downloadUrl = $link.attr('href')
+        cy.request(downloadUrl).then((response) => {
+          expect(response.status).to.eq(200)
+          expect(response.headers['content-type']).to.eq('application/zip')
+          expect(response.headers['content-disposition']).to.contain('attachment')
+        })
+      })
+    })
+
+    it('should generate correct download URLs in files list without manual correction', () => {
+      cy.uploadAndProcess('test-video-valid.mp4')
+
+      cy.get('#filesList a.download-btn').first().should(($link) => {
+        const href = $link.attr('href')
+        expect(href).to.match(/^http:\/\/localhost:8081\/api\/v1\/videos\/.+\/download$/)
+        expect(href).not.to.match(/^\/api\/v1\/videos\//)
+      })
+    })
+
+    it('should successfully download file when clicking download button from files list', () => {
+      cy.uploadAndProcess('test-video-valid.mp4')
+
+      cy.get('#filesList a.download-btn').first().then(($link) => {
+        const downloadUrl = $link.attr('href')
+
         cy.request(downloadUrl).then((response) => {
           expect(response.status).to.eq(200)
           expect(response.headers['content-type']).to.eq('application/zip')

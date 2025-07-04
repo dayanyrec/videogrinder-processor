@@ -1,5 +1,14 @@
 const UIManager = require('../static/js/ui-manager.js')
 
+delete global.window.location
+global.window = Object.create(window)
+global.window.location = {
+  port: '8081',
+  protocol: 'http:',
+  hostname: 'localhost',
+  origin: 'http://localhost:8081'
+}
+
 describe('UIManager Class', () => {
   let uiManager
 
@@ -13,6 +22,9 @@ describe('UIManager Class', () => {
       </form>
     `
     uiManager = new UIManager()
+
+    global.window.location.port = '8081'
+    global.window.location.origin = 'http://localhost:8081'
   })
 
   describe('constructor', () => {
@@ -22,6 +34,32 @@ describe('UIManager Class', () => {
       expect(uiManager.elements.filesList).toBeTruthy()
       expect(uiManager.elements.uploadForm).toBeTruthy()
       expect(uiManager.elements.videoFile).toBeTruthy()
+    })
+  })
+
+  describe('getApiBaseURL', () => {
+    test('should return API URL for development environment (port 8080)', () => {
+      global.window.location.port = '8080'
+      global.window.location.origin = 'http://localhost:8080'
+
+      const baseURL = uiManager.getApiBaseURL()
+      expect(baseURL).toBe('http://localhost:8081')
+    })
+
+    test('should return same origin for production environment (port 8081)', () => {
+      global.window.location.port = '8081'
+      global.window.location.origin = 'http://localhost:8081'
+
+      const baseURL = uiManager.getApiBaseURL()
+      expect(baseURL).toBe('http://localhost:8081')
+    })
+
+    test('should return same origin for other ports', () => {
+      global.window.location.port = '3000'
+      global.window.location.origin = 'http://localhost:3000'
+
+      const baseURL = uiManager.getApiBaseURL()
+      expect(baseURL).toBe('http://localhost:3000')
     })
   })
 
@@ -77,19 +115,19 @@ describe('UIManager Class', () => {
   })
 
   describe('displayFilesList', () => {
-    test('should render formatted files list with download links when files exist', () => {
+    test('should render formatted files list with absolute download URLs when files exist', () => {
       const mockFiles = [
         {
           filename: 'test-video.mp4',
           size: 1024000,
           created_at: '2024-01-01 10:00:00',
-          download_url: '/download/test.zip'
+          download_url: '/api/v1/videos/test.zip/download'
         },
         {
           filename: 'another-video.avi',
           size: 2048000,
           created_at: '2024-01-02 11:00:00',
-          download_url: '/download/another.zip'
+          download_url: '/api/v1/videos/another.zip/download'
         }
       ]
 
@@ -100,10 +138,46 @@ describe('UIManager Class', () => {
       expect(filesListDiv.innerHTML).toContain('another-video.avi')
       expect(filesListDiv.innerHTML).toContain('1000 KB')
       expect(filesListDiv.innerHTML).toContain('2000 KB')
-      expect(filesListDiv.innerHTML).toContain('/download/test.zip')
-      expect(filesListDiv.innerHTML).toContain('/download/another.zip')
+      expect(filesListDiv.innerHTML).toContain('http://localhost:8081/api/v1/videos/test.zip/download')
+      expect(filesListDiv.innerHTML).toContain('http://localhost:8081/api/v1/videos/another.zip/download')
       expect(filesListDiv.innerHTML).toContain('class="file-item"')
       expect(filesListDiv.innerHTML).toContain('class="download-btn"')
+    })
+
+    test('should convert relative URLs to absolute URLs for development environment', () => {
+      global.window.location.port = '8080'
+      global.window.location.origin = 'http://localhost:8080'
+
+      const mockFiles = [
+        {
+          filename: 'dev-video.mp4',
+          size: 1024000,
+          created_at: '2024-01-01 10:00:00',
+          download_url: '/api/v1/videos/dev.zip/download'
+        }
+      ]
+
+      uiManager.displayFilesList(mockFiles)
+
+      const filesListDiv = uiManager.elements.filesList
+      expect(filesListDiv.innerHTML).toContain('http://localhost:8081/api/v1/videos/dev.zip/download')
+      expect(filesListDiv.innerHTML).not.toContain('http://localhost:8080/api/v1/videos/dev.zip/download')
+    })
+
+    test('should handle absolute URLs without modification', () => {
+      const mockFiles = [
+        {
+          filename: 'external-video.mp4',
+          size: 1024000,
+          created_at: '2024-01-01 10:00:00',
+          download_url: 'https://external-api.com/videos/external.zip/download'
+        }
+      ]
+
+      uiManager.displayFilesList(mockFiles)
+
+      const filesListDiv = uiManager.elements.filesList
+      expect(filesListDiv.innerHTML).toContain('https://external-api.com/videos/external.zip/download')
     })
 
     test('should display empty state message when no processed files exist', () => {

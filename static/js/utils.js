@@ -3,8 +3,16 @@ class Utils {
     return Math.round(bytes / 1024)
   }
 
+  static getApiBaseURL() {
+    if (window.location.port === '8080') {
+      return `${window.location.protocol}//${window.location.hostname}:8081`
+    }
+    return window.location.origin
+  }
+
   static createDownloadLink(zipPath) {
-    return '<a href="/download/' + zipPath + '" class="download-btn">📥 Baixar ZIP</a>'
+    const apiBaseURL = this.getApiBaseURL()
+    return `<a href="${apiBaseURL}/api/v1/videos/${zipPath}/download" class="download-btn">📥 Baixar ZIP</a>`
   }
 
   static validateFile(file) {

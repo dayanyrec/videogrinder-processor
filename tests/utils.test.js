@@ -1,5 +1,14 @@
 const Utils = require('../static/js/utils.js')
 
+delete global.window.location
+global.window = Object.create(window)
+global.window.location = {
+  port: '8081',
+  protocol: 'http:',
+  hostname: 'localhost',
+  origin: 'http://localhost:8081'
+}
+
 describe('Utils Class', () => {
   describe('formatFileSize', () => {
     test('should convert bytes to kilobytes with proper rounding', () => {
@@ -25,20 +34,65 @@ describe('Utils Class', () => {
     })
   })
 
+  describe('getApiBaseURL', () => {
+    test('should return API URL for development environment (port 8080)', () => {
+      global.window.location.port = '8080'
+      global.window.location.origin = 'http://localhost:8080'
+
+      const baseURL = Utils.getApiBaseURL()
+      expect(baseURL).toBe('http://localhost:8081')
+
+      global.window.location.port = '8081'
+      global.window.location.origin = 'http://localhost:8081'
+    })
+
+    test('should return same origin for production environment (port 8081)', () => {
+      global.window.location.port = '8081'
+      global.window.location.origin = 'http://localhost:8081'
+
+      const baseURL = Utils.getApiBaseURL()
+      expect(baseURL).toBe('http://localhost:8081')
+    })
+
+    test('should return same origin for other ports', () => {
+      global.window.location.port = '3000'
+      global.window.location.origin = 'http://localhost:3000'
+
+      const baseURL = Utils.getApiBaseURL()
+      expect(baseURL).toBe('http://localhost:3000')
+
+      global.window.location.port = '8081'
+      global.window.location.origin = 'http://localhost:8081'
+    })
+  })
+
   describe('createDownloadLink', () => {
-    test('should generate HTML anchor element with correct download URL and styling', () => {
+    test('should generate HTML anchor element with correct API download URL and styling', () => {
       const zipPath = 'frames_123456.zip'
       const link = Utils.createDownloadLink(zipPath)
 
-      expect(link).toContain('/download/frames_123456.zip')
+      expect(link).toContain('http://localhost:8081/api/v1/videos/frames_123456.zip/download')
       expect(link).toContain('class="download-btn"')
       expect(link).toContain('📥 Baixar ZIP')
     })
 
     test('should create valid HTML structure even with empty zip path', () => {
       const link = Utils.createDownloadLink('')
-      expect(link).toContain('/download/')
+      expect(link).toContain('http://localhost:8081/api/v1/videos//download')
       expect(link).toContain('class="download-btn"')
+    })
+
+    test('should use development API URL when web service is on port 8080', () => {
+      global.window.location.port = '8080'
+      global.window.location.origin = 'http://localhost:8080'
+
+      const zipPath = 'frames_dev.zip'
+      const link = Utils.createDownloadLink(zipPath)
+
+      expect(link).toContain('http://localhost:8081/api/v1/videos/frames_dev.zip/download')
+
+      global.window.location.port = '8081'
+      global.window.location.origin = 'http://localhost:8081'
     })
   })
 

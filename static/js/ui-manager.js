@@ -9,6 +9,13 @@ class UIManager {
     }
   }
 
+  getApiBaseURL() {
+    if (window.location.port === '8080') {
+      return `${window.location.protocol}//${window.location.hostname}:8081`
+    }
+    return window.location.origin
+  }
+
   showResult(message, type) {
     const resultDiv = this.elements.result
     resultDiv.innerHTML = message
@@ -29,13 +36,18 @@ class UIManager {
     const filesListDiv = this.elements.filesList
 
     if (files && files.length > 0) {
+      const apiBaseURL = this.getApiBaseURL()
       let html = ''
       files.forEach(file => {
+        const downloadUrl = file.download_url.startsWith('/')
+          ? `${apiBaseURL}${file.download_url}`
+          : file.download_url
+
         html += '<div class="file-item">' +
                 '<span><strong>' + file.filename + '</strong><br>' +
                 '<small>Tamanho: ' + Math.round(file.size / 1024) + ' KB | ' +
                 'Criado: ' + file.created_at + '</small></span>' +
-                '<a href="' + file.download_url + '" class="download-btn">📥 Baixar</a>' +
+                '<a href="' + downloadUrl + '" class="download-btn">📥 Baixar</a>' +
                 '</div>'
       })
       filesListDiv.innerHTML = html

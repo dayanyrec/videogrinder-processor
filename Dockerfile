@@ -39,8 +39,22 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -buildvcs=false \
     -a -installsuffix cgo \
     -ldflags='-w -s -extldflags "-static"' \
-    -o videogrinder-processor \
-    .
+    -o web/cmd/main \
+    ./web/cmd
+
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -buildvcs=false \
+    -a -installsuffix cgo \
+    -ldflags='-w -s -extldflags "-static"' \
+    -o api/cmd/main \
+    ./api/cmd
+
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -buildvcs=false \
+    -a -installsuffix cgo \
+    -ldflags='-w -s -extldflags "-static"' \
+    -o processor/cmd/main \
+    ./processor/cmd
 
 FROM alpine:3.18 AS production
 
@@ -53,7 +67,11 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-COPY --from=builder /app/videogrinder-processor .
+COPY --from=builder /app/web/cmd/main ./web/cmd/main
+COPY --from=builder /app/api/cmd/main ./api/cmd/main
+COPY --from=builder /app/processor/cmd/main ./processor/cmd/main
+
+COPY --from=builder /app/web/static ./web/static
 
 RUN mkdir -p uploads outputs temp && \
     chown -R appuser:appgroup /app
@@ -63,6 +81,6 @@ USER appuser
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/status || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
-CMD ["./videogrinder-processor"]
+CMD ["./web/cmd/main"]

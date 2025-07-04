@@ -86,8 +86,6 @@ services:
       target: production
     ports:
       - "8080:8080"
-    volumes:
-      - .:/app
     environment:
       - ENV=production
       - AWS_REGION=us-east-1

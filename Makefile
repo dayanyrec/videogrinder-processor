@@ -240,5 +240,14 @@ endif
 
 docker-clean: ## Clean Docker resources
 	@echo "🧹 Cleaning Docker resources..."
+	@echo "📦 Stopping and removing compose resources..."
 	$(COMPOSE_CMD) down --volumes --rmi all || true
+	@echo "🗑️  Removing project-specific volumes..."
+	docker volume rm videogrinder-processor_videogrinder-uploads videogrinder-processor_videogrinder-outputs videogrinder-processor_videogrinder-temp videogrinder-processor_air-tmp 2>/dev/null || true
+	@echo "🧽 Cleaning unused Docker resources..."
 	docker system prune -f || true
+	docker volume prune -f || true
+	docker container prune -f || true
+	docker network prune -f || true
+	docker builder prune -f || true
+	@echo "✅ Docker cleanup completed!"

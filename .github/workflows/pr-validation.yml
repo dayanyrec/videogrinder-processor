@@ -60,7 +60,7 @@ jobs:
           -v $(pwd):/app \
           -w /app \
           videogrinder-dev:pr-${{ github.event.pull_request.number }} \
-          make fmt-ci
+          make fmt-check
 
     - name: 🔍 Run linting
       run: |
@@ -68,7 +68,7 @@ jobs:
           -v $(pwd):/app \
           -w /app \
           videogrinder-dev:pr-${{ github.event.pull_request.number }} \
-          make lint-ci
+          make lint
 
     - name: 🧪 Run unit tests
       run: |
@@ -76,7 +76,7 @@ jobs:
           -v $(pwd):/app \
           -w /app \
           videogrinder-dev:pr-${{ github.event.pull_request.number }} \
-          make test-ci
+          make test
 
   build-validation:
     name: 🏗️ Build Validation

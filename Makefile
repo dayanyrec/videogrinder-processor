@@ -1,4 +1,4 @@
-.PHONY: help setup run run-api run-web run-processor test test-api test-processor test-services test-utils test-clients test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-ci lint-ci test-ci test-api-ci test-processor-ci test-js-ci check check-ci logs logs-web logs-api logs-processor down docker-clean health health-ci
+.PHONY: help setup run run-api run-web run-processor test test-api test-processor test-services test-utils test-clients test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-check check logs logs-web logs-api logs-processor down docker-clean health shell restart restart-api restart-web restart-processor build rebuild status ps
 
 DOCKER_IMAGE=videogrinder-processor
 ENV ?= $(word 2,$(MAKECMDGOALS))
@@ -17,40 +17,41 @@ else
     COMPOSE_CMD = docker compose
 endif
 
-
+# Variables for common commands
+GO_TEST_CMD = GOFLAGS='-buildvcs=false' go test -v
+NPM_INSTALL_CMD = cd web && npm install
+NPM_TEST_CMD = cd web && npm test
+NPM_LINT_CMD = cd web && npx eslint . --ext .js
+NPM_LINT_FIX_CMD = cd web && npx eslint . --ext .js --fix
+LOGS_TAIL_CMD = logs --tail=50
+LOGS_FOLLOW_CMD = logs -f
 
 %:
 	@:
 
-help: ## Show available commands
-	@echo 'VideoGrinder - Essential Commands:'
+help: ## Show this help message
+	@echo '🚀 VideoGrinder Processor - Available Commands:'
 	@echo ''
-	@echo 'Usage: make <command> [environment]'
-	@echo 'Environment: dev (default) | prod'
+	@echo 'Environment Setup:'
+	@echo '  make setup        # Configure environment (usage: make setup [dev|prod])'
+	@echo '  make build        # Build all services (usage: make build [dev|prod])'
+	@echo '  make rebuild      # Rebuild all services (usage: make rebuild [dev|prod])'
 	@echo ''
-	@echo 'Multi-Service Architecture:'
-	@echo '  make run          # Run all 3 services (Web + API + Processor)'
-	@echo '  make run-web      # Run only Web service (static files)'
-	@echo '  make run-api      # Run only API service'
-	@echo '  make run-processor # Run only processor service'
+	@echo 'Service Management:'
+	@echo '  make run          # Run all 3 services (Web + API + Processor) (usage: make run [dev|prod])'
+	@echo '  make run-api      # Run only API service (usage: make run-api [dev|prod])'
+	@echo '  make run-web      # Run only web service (usage: make run-web [dev|prod])'
+	@echo '  make run-processor # Run only processor service (usage: make run-processor [dev|prod])'
+	@echo '  make restart      # Restart all services (usage: make restart [dev|prod])'
+	@echo '  make restart-api  # Restart API service (usage: make restart-api [dev|prod])'
+	@echo '  make restart-web  # Restart web service (usage: make restart-web [dev|prod])'
+	@echo '  make restart-processor # Restart processor service (usage: make restart-processor [dev|prod])'
+	@echo '  make down         # Stop services (usage: make down [dev|prod|all])'
 	@echo ''
-	@echo 'Port Configuration:'
-	@echo '  Web Service:      http://localhost:8080 (static files)'
-	@echo '  API Service:      http://localhost:8081 (REST API)'
-	@echo '  Processor Service: http://localhost:8082 (video processing)'
-	@echo ''
-	@echo 'Testing:'
-	@echo '  make test         # Run all Go tests (API + processor)'
-	@echo '  make test-api     # Run only API service tests'
-	@echo '  make test-processor # Run only processor service tests'
-	@echo '  make test-js      # Run JavaScript tests'
-	@echo '  make test-e2e     # Run end-to-end tests'
-	@echo ''
-	@echo 'Examples:'
-	@echo '  make run dev      # Run all 3 services in dev mode'
-	@echo '  make run prod     # Run all 3 services in production mode'
-	@echo '  make logs prod    # View production logs'
-	@echo '  make down dev     # Stop dev services'
+	@echo 'Development:'
+	@echo '  make shell        # Open shell in web-dev container'
+	@echo '  make status       # Show services status'
+	@echo '  make ps           # Show running containers'
 	@echo ''
 	@echo 'Quality Checks:'
 	@echo '  make check        # Run all quality checks (format + lint + test)'
@@ -60,7 +61,17 @@ help: ## Show available commands
 	@echo '  make test-js      # Run JS tests'
 	@echo '  make health       # Check app health'
 	@echo ''
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo 'Logs & Monitoring:'
+	@echo '  make logs         # View all services logs (usage: make logs [dev|prod])'
+	@echo '  make logs-tail    # Show last 50 lines of all services logs (usage: make logs-tail [dev|prod])'
+	@echo '  make logs-web     # View Web service logs (usage: make logs-web [dev|prod])'
+	@echo '  make logs-api     # View API service logs (usage: make logs-api [dev|prod])'
+	@echo '  make logs-processor # View processor service logs (usage: make logs-processor [dev|prod])'
+	@echo ''
+	@echo 'Maintenance:'
+	@echo '  make docker-clean # Clean Docker resources'
+	@echo ''
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 setup: ## Configure environment (usage: make setup [dev|prod])
 	@echo "🔧 Setting up $(ENV) environment..."
@@ -85,87 +96,87 @@ run-processor: ## Run only processor service (usage: make run-processor [dev|pro
 
 test: ## Run all Go unit tests (API + processor)
 	@echo "🧪 Running all Go unit tests..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "GOFLAGS='-buildvcs=false' go test -v ./..."
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./..." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./..."
 
 test-api: ## Run API service unit tests
 	@echo "🧪 Running API service unit tests..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "GOFLAGS='-buildvcs=false' go test -v ./api/internal/..."
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./api/internal/..." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./api/internal/..."
 
 test-processor: ## Run processor service unit tests
 	@echo "🧪 Running processor service unit tests..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "GOFLAGS='-buildvcs=false' go test -v ./processor/internal/..."
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./processor/internal/..." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./processor/internal/..."
 
 test-services: ## Run services unit tests (API + processor)
 	@echo "🧪 Running services unit tests..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "GOFLAGS='-buildvcs=false' go test -v ./internal/services/..."
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./internal/services/..." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./internal/services/..."
 
 test-utils: ## Run utils unit tests
 	@echo "🧪 Running utils unit tests..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "GOFLAGS='-buildvcs=false' go test -v ./internal/utils/..."
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./internal/utils/..." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./internal/utils/..."
 
 test-clients: ## Run clients unit tests
 	@echo "🧪 Running clients unit tests..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "GOFLAGS='-buildvcs=false' go test -v ./internal/clients/..."
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./internal/clients/..." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./internal/clients/..."
 
 test-js: ## Run JavaScript unit tests
 	@echo "🧪 Running JavaScript unit tests..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install"
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm test"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_TEST_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_TEST_CMD)"
 
 test-js-watch: ## Run unit tests in watch mode
 	@echo "🧪 Running unit tests in watch mode..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install"
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm run test:watch"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "cd web && npm run test:watch" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm run test:watch"
 
 test-js-coverage: ## Run unit tests with coverage report
 	@echo "🧪 Running unit tests with coverage..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install"
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm run test:coverage"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "cd web && npm run test:coverage" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm run test:coverage"
 
 test-e2e: ## Run e2e tests (requires app running)
 	@echo "🎭 Running e2e tests..."
 	@echo "⚠️  Make sure the app is running with 'make run' in another terminal"
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install cypress --save-dev && npx cypress install"
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx cypress run"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "cd web && npm install cypress --save-dev && npx cypress install" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install cypress --save-dev && npx cypress install"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "cd web && npx cypress run" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx cypress run"
 
 test-e2e-open: ## Open Cypress interactive mode
 	@echo "🎭 Opening Cypress..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install cypress --save-dev && npx cypress install"
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx cypress open"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "cd web && npm install cypress --save-dev && npx cypress install" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install cypress --save-dev && npx cypress install"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "cd web && npx cypress open" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx cypress open"
 
 lint: ## Check code quality (Go + JS)
 	@echo "🔍 Running Go linters..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "GOFLAGS='-buildvcs=false' golangci-lint run"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "GOFLAGS='-buildvcs=false' golangci-lint run" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "GOFLAGS='-buildvcs=false' golangci-lint run"
 	@echo "🔍 Running JS linters..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install"
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx eslint . --ext .js"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_LINT_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_LINT_CMD)"
 
 lint-js: ## Check JavaScript code quality
 	@echo "🔍 Running JS linters..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install"
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx eslint . --ext .js"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_LINT_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_LINT_CMD)"
 
 fmt: ## Format code (Go + JS)
 	@echo "🎨 Formatting Go code..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "gofmt -s -w . && goimports -w ."
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "gofmt -s -w . && goimports -w ." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "gofmt -s -w . && goimports -w ."
 	@echo "🎨 Formatting JS code..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install"
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx eslint . --ext .js --fix"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_LINT_FIX_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_LINT_FIX_CMD)"
 	@echo "✅ Code formatted"
 
 fmt-check: ## Check code formatting without changing files
 	@echo "🎨 Checking Go code formatting..."
-	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "test -z \"\$$(gofmt -l .)\" || (echo 'Go files not formatted:' && gofmt -l . && exit 1)"
-	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "test -z \"\$$(goimports -l .)\" || (echo 'Go imports not formatted:' && goimports -l . && exit 1)"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "test -z \"\$$(gofmt -l .)\" || (echo 'Go files not formatted:' && gofmt -l . && exit 1)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "test -z \"\$$(gofmt -l .)\" || (echo 'Go files not formatted:' && gofmt -l . && exit 1)"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "test -z \"\$$(goimports -l .)\" || (echo 'Go imports not formatted:' && goimports -l . && exit 1)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "test -z \"\$$(goimports -l .)\" || (echo 'Go imports not formatted:' && goimports -l . && exit 1)"
 	@echo "🎨 Checking JS code formatting..."
-	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "cd web && npm install"
-	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "cd web && npx eslint . --ext .js"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_LINT_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_LINT_CMD)"
 	@echo "✅ Code formatting is correct"
 
 fmt-js: ## Format JavaScript code
 	@echo "🎨 Formatting JS code..."
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install"
-	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx eslint . --ext .js --fix"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_LINT_FIX_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_LINT_FIX_CMD)"
 	@echo "✅ JS code formatted"
 
 check: fmt-check lint test test-js ## Run all quality checks
@@ -200,15 +211,15 @@ health: ## Check application health (usage: make health [dev|prod])
 
 logs: ## View all services logs (usage: make logs [dev|prod])
 	@echo "📋 Showing all services logs..."
-	$(COMPOSE_CMD) logs -f $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+	$(COMPOSE_CMD) $(LOGS_FOLLOW_CMD) $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
 
 logs-tail: ## Show last 50 lines of all services logs (usage: make logs-tail [dev|prod])
 	@echo "📋 Showing last 50 lines of all services logs..."
-	$(COMPOSE_CMD) logs --tail=50 $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+	$(COMPOSE_CMD) $(LOGS_TAIL_CMD) $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
 
 logs-web: ## View Web service logs (usage: make logs-web [dev|prod])
 	@echo "📋 Showing Web service logs..."
-	$(COMPOSE_CMD) logs -f $(WEB_SERVICE)
+	$(COMPOSE_CMD) $(LOGS_FOLLOW_CMD) $(WEB_SERVICE)
 
 logs-web-tail: ## Show last 30 lines of Web service logs (usage: make logs-web-tail [dev|prod])
 	@echo "📋 Showing last 30 lines of Web service logs..."
@@ -216,7 +227,7 @@ logs-web-tail: ## Show last 30 lines of Web service logs (usage: make logs-web-t
 
 logs-api: ## View API service logs (usage: make logs-api [dev|prod])
 	@echo "📋 Showing API service logs..."
-	$(COMPOSE_CMD) logs -f $(API_SERVICE)
+	$(COMPOSE_CMD) $(LOGS_FOLLOW_CMD) $(API_SERVICE)
 
 logs-api-tail: ## Show last 30 lines of API service logs (usage: make logs-api-tail [dev|prod])
 	@echo "📋 Showing last 30 lines of API service logs..."
@@ -224,7 +235,7 @@ logs-api-tail: ## Show last 30 lines of API service logs (usage: make logs-api-t
 
 logs-processor: ## View processor service logs (usage: make logs-processor [dev|prod])
 	@echo "📋 Showing processor service logs..."
-	$(COMPOSE_CMD) logs -f $(PROCESSOR_SERVICE)
+	$(COMPOSE_CMD) $(LOGS_FOLLOW_CMD) $(PROCESSOR_SERVICE)
 
 logs-processor-tail: ## Show last 30 lines of processor service logs (usage: make logs-processor-tail [dev|prod])
 	@echo "📋 Showing last 30 lines of processor service logs..."
@@ -251,3 +262,45 @@ docker-clean: ## Clean Docker resources
 	docker network prune -f || true
 	docker builder prune -f || true
 	@echo "✅ Docker cleanup completed!"
+
+shell: ## Open shell in web-dev container
+	@echo "🐚 Opening shell in web-dev container..."
+	$(COMPOSE_CMD) exec videogrinder-web-dev sh
+
+restart: ## Restart all services (usage: make restart [dev|prod])
+	@echo "🔄 Restarting all services in $(ENV) mode..."
+	$(COMPOSE_CMD) restart $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+	@echo "✅ Services restarted"
+
+restart-api: ## Restart API service (usage: make restart-api [dev|prod])
+	@echo "🔄 Restarting API service in $(ENV) mode..."
+	$(COMPOSE_CMD) restart $(API_SERVICE)
+	@echo "✅ API service restarted"
+
+restart-web: ## Restart web service (usage: make restart-web [dev|prod])
+	@echo "🔄 Restarting web service in $(ENV) mode..."
+	$(COMPOSE_CMD) restart $(WEB_SERVICE)
+	@echo "✅ Web service restarted"
+
+restart-processor: ## Restart processor service (usage: make restart-processor [dev|prod])
+	@echo "🔄 Restarting processor service in $(ENV) mode..."
+	$(COMPOSE_CMD) restart $(PROCESSOR_SERVICE)
+	@echo "✅ Processor service restarted"
+
+build: ## Build all services (usage: make build [dev|prod])
+	@echo "🔨 Building all services in $(ENV) mode..."
+	$(COMPOSE_CMD) build $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+	@echo "✅ All services built"
+
+rebuild: ## Rebuild all services (usage: make rebuild [dev|prod])
+	@echo "🔨 Rebuilding all services in $(ENV) mode..."
+	$(COMPOSE_CMD) build --no-cache $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+	@echo "✅ All services rebuilt"
+
+status: ## Show services status
+	@echo "📊 Services Status:"
+	$(COMPOSE_CMD) ps
+
+ps: ## Show running containers
+	@echo "🐳 Running Containers:"
+	docker ps --filter "name=videogrinder" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"

@@ -29,7 +29,7 @@ Pipeline de CI/CD **simplificado e focado** no VideoGrinder com **5 passos essen
 └── Step 5: make health (verificação completa)
 ```
 
-**Tempo total**: ~4-6 minutos (50% mais rápido que antes)
+**Tempo total**: ~4-6 minutos
 
 ## 🔧 Comandos Principais
 
@@ -167,4 +167,4 @@ make logs-tail prod  # Mostra últimas 50 linhas e continua
 
 ---
 
-**Estado atual**: Pipeline **otimizado e estável** - 5 steps essenciais funcionando perfeitamente. 
+**Estado atual**: Pipeline **otimizado e estável** - 5 steps essenciais funcionando perfeitamente.

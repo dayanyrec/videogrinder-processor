@@ -173,7 +173,7 @@ check: fmt-check lint test test-js ## Run all quality checks
 health: ## Check application health (usage: make health [dev|prod])
 	@echo "🏥 Checking application health..."
 	@echo "🌐 Checking Web Service (port 8080)..."
-	@if $(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -s -f http://$(WEB_SERVICE):8080/health" > /dev/null 2>&1; then \
+	@if curl -s -f http://localhost:8080/health > /dev/null 2>&1; then \
 		echo "✅ Web Service: healthy"; \
 	else \
 		echo "❌ Web Service: failed"; \
@@ -181,7 +181,7 @@ health: ## Check application health (usage: make health [dev|prod])
 		exit 1; \
 	fi
 	@echo "🔌 Checking API Service (port 8081)..."
-	@if $(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -s -f http://$(API_SERVICE):8081/health" > /dev/null 2>&1; then \
+	@if curl -s -f http://localhost:8081/health > /dev/null 2>&1; then \
 		echo "✅ API Service: healthy"; \
 	else \
 		echo "❌ API Service: failed"; \
@@ -189,7 +189,7 @@ health: ## Check application health (usage: make health [dev|prod])
 		exit 1; \
 	fi
 	@echo "⚙️  Checking Processor Service (port 8082)..."
-	@if $(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -s -f http://$(PROCESSOR_SERVICE):8082/health" > /dev/null 2>&1; then \
+	@if curl -s -f http://localhost:8082/health > /dev/null 2>&1; then \
 		echo "✅ Processor Service: healthy"; \
 	else \
 		echo "❌ Processor Service: failed"; \

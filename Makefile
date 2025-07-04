@@ -50,15 +50,13 @@ help: ## Show available commands
 	@echo '  make logs prod    # View production logs'
 	@echo '  make down dev     # Stop dev services'
 	@echo ''
-	@echo 'CI/CD Commands (work without Docker - faster for CI):'
-	@echo '  make check-ci     # Run all quality checks (CI-friendly)'
-	@echo '  make fmt-ci       # Format code (CI-friendly)'
-	@echo '  make lint-ci      # Lint code (CI-friendly)'
-	@echo '  make test-ci      # Run all Go tests (CI-friendly)'
-	@echo '  make test-js-ci   # Run JS tests (CI-friendly)'
-	@echo '  make test-api-ci  # Run API tests (CI-friendly)'
-	@echo '  make test-processor-ci # Run processor tests (CI-friendly)'
-	@echo '  make health-ci    # Check app health (CI-friendly)'
+	@echo 'Quality Checks:'
+	@echo '  make check        # Run all quality checks (format + lint + test)'
+	@echo '  make fmt          # Format code (Go + JS)'
+	@echo '  make lint         # Lint code (Go + JS)'
+	@echo '  make test         # Run all Go tests'
+	@echo '  make test-js      # Run JS tests'
+	@echo '  make health       # Check app health'
 	@echo ''
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
@@ -153,56 +151,17 @@ fmt: ## Format code (Go + JS)
 	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx eslint . --ext .js --fix"
 	@echo "✅ Code formatted"
 
-fmt-ci: ## Format code for CI (without Docker Compose)
-	@echo "🎨 Formatting Go code..."
-	gofmt -s -w .
-	goimports -w .
-	@echo "🎨 Formatting JS code..."
-	cd web && npm install
-	cd web && npx eslint . --ext .js --fix
-	@echo "✅ Code formatted"
-
 fmt-js: ## Format JavaScript code
 	@echo "🎨 Formatting JS code..."
 	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install"
 	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx eslint . --ext .js --fix"
 	@echo "✅ JS code formatted"
 
-lint-ci: ## Check code quality for CI (without Docker Compose)
-	@echo "🔍 Running Go linters..."
-	GOFLAGS='-buildvcs=false' golangci-lint run
-	@echo "🔍 Running JS linters..."
-	cd web && npm install
-	cd web && npx eslint . --ext .js
-
-test-ci: ## Run all Go unit tests for CI (without Docker Compose)
-	@echo "🧪 Running all Go unit tests..."
-	GOFLAGS='-buildvcs=false' go test -v ./...
-
-test-api-ci: ## Run API service unit tests for CI
-	@echo "🧪 Running API service unit tests..."
-	GOFLAGS='-buildvcs=false' go test -v ./api/internal/...
-
-test-processor-ci: ## Run processor service unit tests for CI
-	@echo "🧪 Running processor service unit tests..."
-	GOFLAGS='-buildvcs=false' go test -v ./processor/internal/...
-
-test-js-ci: ## Run JavaScript unit tests for CI (without Docker Compose)
-	@echo "🧪 Running JavaScript unit tests..."
-	cd web && npm install
-	cd web && npm test
-
 check: fmt lint test test-js ## Run all quality checks
-
-check-ci: fmt-ci lint-ci test-ci test-js-ci ## Run all quality checks for CI (without Docker Compose)
 
 health: ## Check application health (usage: make health [dev|prod])
 	@echo "🏥 Checking application health..."
-	$(COMPOSE_CMD) --profile tools run --rm --network host videogrinder-devtools sh -c "curl -f http://localhost:8080/health || echo 'Health check failed'"
-
-health-ci: ## Check application health for CI (without Docker Compose)
-	@echo "🏥 Checking application health..."
-	curl -f http://localhost:8080/health || echo 'Health check failed'
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -f http://host.docker.internal:8080/health || echo 'Health check failed'"
 
 logs: ## View all services logs (usage: make logs [dev|prod])
 	@echo "📋 Showing all services logs..."

@@ -11,7 +11,7 @@ import (
 
 	"video-processor/internal/config"
 	"video-processor/internal/models"
-	"video-processor/internal/utils"
+	"video-processor/processor/internal/utils"
 )
 
 type VideoService struct {

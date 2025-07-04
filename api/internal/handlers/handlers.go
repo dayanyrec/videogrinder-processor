@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"log"
@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"video-processor/internal/clients"
+	"video-processor/api/internal/clients"
 	"video-processor/internal/config"
 	"video-processor/internal/models"
 

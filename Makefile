@@ -86,7 +86,7 @@ test: ## Run all Go unit tests (API + processor)
 
 test-api: ## Run API service unit tests
 	@echo "🧪 Running API service unit tests..."
-	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "GOFLAGS='-buildvcs=false' go test -v ./internal/api/..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "GOFLAGS='-buildvcs=false' go test -v ./api/internal/..."
 
 test-processor: ## Run processor service unit tests
 	@echo "🧪 Running processor service unit tests..."
@@ -178,7 +178,7 @@ test-ci: ## Run all Go unit tests for CI (without Docker Compose)
 
 test-api-ci: ## Run API service unit tests for CI
 	@echo "🧪 Running API service unit tests..."
-	GOFLAGS='-buildvcs=false' go test -v ./internal/api/...
+	GOFLAGS='-buildvcs=false' go test -v ./api/internal/...
 
 test-processor-ci: ## Run processor service unit tests for CI
 	@echo "🧪 Running processor service unit tests..."

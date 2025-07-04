@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"video-processor/internal/api"
+	"video-processor/api/internal/handlers"
 	"video-processor/internal/config"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +15,7 @@ func main() {
 	cfg := config.New()
 	cfg.CreateDirectories()
 
-	apiHandlers := api.NewAPIHandlers(cfg)
+	apiHandlers := handlers.NewAPIHandlers(cfg)
 
 	r := gin.Default()
 

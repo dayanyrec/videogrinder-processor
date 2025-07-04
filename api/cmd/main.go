@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"video-processor/api/internal/config"
 	"video-processor/api/internal/handlers"
-	"video-processor/internal/config"
 
 	"github.com/gin-gonic/gin"
 )

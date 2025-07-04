@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"video-processor/internal/config"
 	"video-processor/internal/models"
+	"video-processor/processor/internal/config"
 	"video-processor/processor/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -20,10 +20,10 @@ import (
 
 type ProcessorHandlers struct {
 	videoService *services.VideoService
-	config       *config.Config
+	config       *config.ProcessorConfig
 }
 
-func NewProcessorHandlers(videoService *services.VideoService, cfg *config.Config) *ProcessorHandlers {
+func NewProcessorHandlers(videoService *services.VideoService, cfg *config.ProcessorConfig) *ProcessorHandlers {
 	return &ProcessorHandlers{
 		videoService: videoService,
 		config:       cfg,

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"video-processor/api/internal/clients"
-	"video-processor/internal/config"
+	"video-processor/api/internal/config"
 	"video-processor/internal/models"
 
 	"github.com/gin-gonic/gin"
@@ -17,10 +17,10 @@ import (
 
 type APIHandlers struct {
 	processorClient clients.ProcessorClientInterface
-	config          *config.Config
+	config          *config.APIConfig
 }
 
-func NewAPIHandlers(cfg *config.Config) *APIHandlers {
+func NewAPIHandlers(cfg *config.APIConfig) *APIHandlers {
 	return &APIHandlers{
 		processorClient: clients.NewProcessorClient(cfg.ProcessorURL),
 		config:          cfg,

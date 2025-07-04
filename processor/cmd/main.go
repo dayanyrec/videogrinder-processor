@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"video-processor/internal/config"
+	"video-processor/processor/internal/config"
 	"video-processor/processor/internal/handlers"
 	"video-processor/processor/internal/services"
 

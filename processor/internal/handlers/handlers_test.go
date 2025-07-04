@@ -10,8 +10,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"video-processor/internal/config"
+	baseConfig "video-processor/internal/config"
 	"video-processor/internal/models"
+	"video-processor/processor/internal/config"
 	"video-processor/processor/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -19,20 +20,48 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestProcessorHandlers() (handlers *ProcessorHandlers, cleanup func()) {
+func setupTestHandlers() (handlers *ProcessorHandlers, cleanup func()) {
 	tempDir := filepath.Join(os.TempDir(), "processor_test")
 	uploadsDir := filepath.Join(tempDir, "uploads")
 	outputsDir := filepath.Join(tempDir, "outputs")
 	tempVideoDir := filepath.Join(tempDir, "temp")
 
-	os.MkdirAll(uploadsDir, 0750)
-	os.MkdirAll(outputsDir, 0750)
-	os.MkdirAll(tempVideoDir, 0750)
+	require.NoError(nil, os.MkdirAll(uploadsDir, 0750))
+	require.NoError(nil, os.MkdirAll(outputsDir, 0750))
+	require.NoError(nil, os.MkdirAll(tempVideoDir, 0750))
 
-	cfg := &config.Config{
-		UploadsDir: uploadsDir,
-		OutputsDir: outputsDir,
-		TempDir:    tempVideoDir,
+	cfg := &config.ProcessorConfig{
+		Port: "8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{
+			UploadsDir: uploadsDir,
+			OutputsDir: outputsDir,
+			TempDir:    tempVideoDir,
+		},
+	}
+
+	videoService := services.NewVideoService(cfg)
+	handlers = NewProcessorHandlers(videoService, cfg)
+
+	cleanup = func() {
+		os.RemoveAll(tempDir)
+	}
+
+	return
+}
+
+func setupTestHandlersWithMissingDirs() (handlers *ProcessorHandlers, cleanup func()) {
+	tempDir := filepath.Join(os.TempDir(), "processor_test_missing")
+	uploadsDir := filepath.Join(tempDir, "uploads")
+	outputsDir := filepath.Join(tempDir, "outputs")
+	tempVideoDir := filepath.Join(tempDir, "temp")
+
+	cfg := &config.ProcessorConfig{
+		Port: "8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{
+			UploadsDir: uploadsDir,
+			OutputsDir: outputsDir,
+			TempDir:    tempVideoDir,
+		},
 	}
 
 	videoService := services.NewVideoService(cfg)
@@ -46,10 +75,13 @@ func setupTestProcessorHandlers() (handlers *ProcessorHandlers, cleanup func()) 
 }
 
 func TestNewProcessorHandlers_ShouldInitializeHandlersWithCorrectDependencies(t *testing.T) {
-	cfg := &config.Config{
-		UploadsDir: "uploads",
-		OutputsDir: "outputs",
-		TempDir:    "temp",
+	cfg := &config.ProcessorConfig{
+		Port: "8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{
+			UploadsDir: "uploads",
+			OutputsDir: "outputs",
+			TempDir:    "temp",
+		},
 	}
 	videoService := services.NewVideoService(cfg)
 
@@ -60,7 +92,7 @@ func TestNewProcessorHandlers_ShouldInitializeHandlersWithCorrectDependencies(t 
 }
 
 func TestProcessVideoUpload_ShouldReturnBadRequestWhenNoFileIsProvided(t *testing.T) {
-	handlers, cleanup := setupTestProcessorHandlers()
+	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
 	gin.SetMode(gin.TestMode)
@@ -82,7 +114,7 @@ func TestProcessVideoUpload_ShouldReturnBadRequestWhenNoFileIsProvided(t *testin
 }
 
 func TestProcessVideoUpload_ShouldReturnBadRequestWhenUploadingInvalidFileExtension(t *testing.T) {
-	handlers, cleanup := setupTestProcessorHandlers()
+	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
 	gin.SetMode(gin.TestMode)
@@ -112,7 +144,7 @@ func TestProcessVideoUpload_ShouldReturnBadRequestWhenUploadingInvalidFileExtens
 }
 
 func TestProcessVideoUpload_ShouldReturnCreatedWhenProcessingValidVideo(t *testing.T) {
-	handlers, cleanup := setupTestProcessorHandlers()
+	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
 	gin.SetMode(gin.TestMode)
@@ -143,7 +175,7 @@ func TestProcessVideoUpload_ShouldReturnCreatedWhenProcessingValidVideo(t *testi
 }
 
 func TestGetProcessorStatus_ShouldReturnHealthyStatusWhenServiceIsRunning(t *testing.T) {
-	handlers, cleanup := setupTestProcessorHandlers()
+	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
 	gin.SetMode(gin.TestMode)
@@ -183,7 +215,7 @@ func TestGetProcessorStatus_ShouldReturnHealthyStatusWhenServiceIsRunning(t *tes
 }
 
 func TestGetProcessorStatus_ShouldReturnUnhealthyStatusWhenDirectoriesAreMissing(t *testing.T) {
-	handlers, cleanup := setupTestProcessorHandlers()
+	handlers, cleanup := setupTestHandlersWithMissingDirs()
 	defer cleanup()
 
 	// Create a non-existent directory to simulate missing directory
@@ -221,7 +253,7 @@ func TestGetProcessorStatus_ShouldReturnUnhealthyStatusWhenDirectoriesAreMissing
 }
 
 func TestGetProcessorStatus_ShouldIncludeLatencyInformation(t *testing.T) {
-	handlers, cleanup := setupTestProcessorHandlers()
+	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
 	gin.SetMode(gin.TestMode)
@@ -252,7 +284,7 @@ func TestGetProcessorStatus_ShouldIncludeLatencyInformation(t *testing.T) {
 }
 
 func TestGetProcessorStatus_ShouldVerifyAllRequiredDirectories(t *testing.T) {
-	handlers, cleanup := setupTestProcessorHandlers()
+	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
 	gin.SetMode(gin.TestMode)
@@ -290,7 +322,7 @@ func TestProcessorHandlers_Integration_ShouldProvideFullProcessingWorkflow(t *te
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	handlers, cleanup := setupTestProcessorHandlers()
+	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
 	gin.SetMode(gin.TestMode)
@@ -325,7 +357,7 @@ func TestProcessorHandlers_Integration_ShouldProvideFullProcessingWorkflow(t *te
 }
 
 func BenchmarkProcessVideoUpload_ShouldPerformEfficientlyUnderLoad(b *testing.B) {
-	handlers, cleanup := setupTestProcessorHandlers()
+	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
 	gin.SetMode(gin.TestMode)

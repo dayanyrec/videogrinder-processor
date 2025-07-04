@@ -11,7 +11,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"video-processor/internal/config"
+	"video-processor/api/internal/config"
+	baseConfig "video-processor/internal/config"
 	"video-processor/internal/models"
 
 	"github.com/gin-gonic/gin"
@@ -45,26 +46,26 @@ func (m *MockProcessorClient) ProcessVideo(filename string, fileReader io.Reader
 }
 
 func setupTestHandlers() (handlers *APIHandlers, cleanup func()) {
-	tempDir := filepath.Join(os.TempDir(), "apihandlers_test")
+	tempDir := filepath.Join(os.TempDir(), "api_test")
 	uploadsDir := filepath.Join(tempDir, "uploads")
 	outputsDir := filepath.Join(tempDir, "outputs")
-	tempVideoDir := filepath.Join(tempDir, "temp")
+	tempAPIDir := filepath.Join(tempDir, "temp")
 
-	os.MkdirAll(uploadsDir, 0750)
-	os.MkdirAll(outputsDir, 0750)
-	os.MkdirAll(tempVideoDir, 0750)
+	require.NoError(nil, os.MkdirAll(uploadsDir, 0750))
+	require.NoError(nil, os.MkdirAll(outputsDir, 0750))
+	require.NoError(nil, os.MkdirAll(tempAPIDir, 0750))
 
-	cfg := &config.Config{
-		UploadsDir:   uploadsDir,
-		OutputsDir:   outputsDir,
-		TempDir:      tempVideoDir,
+	cfg := &config.APIConfig{
+		Port:         "8081",
 		ProcessorURL: "http://localhost:8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{
+			UploadsDir: uploadsDir,
+			OutputsDir: outputsDir,
+			TempDir:    tempAPIDir,
+		},
 	}
 
-	handlers = &APIHandlers{
-		processorClient: &MockProcessorClient{},
-		config:          cfg,
-	}
+	handlers = NewAPIHandlers(cfg)
 
 	cleanup = func() {
 		os.RemoveAll(tempDir)
@@ -74,11 +75,14 @@ func setupTestHandlers() (handlers *APIHandlers, cleanup func()) {
 }
 
 func TestNewAPIHandlers_ShouldInitializeHandlersWithCorrectDependencies(t *testing.T) {
-	cfg := &config.Config{
-		UploadsDir:   "uploads",
-		OutputsDir:   "outputs",
-		TempDir:      "temp",
+	cfg := &config.APIConfig{
+		Port:         "8081",
 		ProcessorURL: "http://localhost:8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{
+			UploadsDir: "uploads",
+			OutputsDir: "outputs",
+			TempDir:    "temp",
+		},
 	}
 
 	handlers := NewAPIHandlers(cfg)
@@ -549,6 +553,13 @@ func TestGetAPIHealth_ShouldReturnHealthyStatusWhenAllServicesAreOperational(t *
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
+	mockClient := &MockProcessorClient{
+		healthCheckFunc: func() error {
+			return nil
+		},
+	}
+	handlers.processorClient = mockClient
+
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -654,6 +665,13 @@ func TestGetAPIHealth_ShouldIncludeLatencyInformation(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
+	mockClient := &MockProcessorClient{
+		healthCheckFunc: func() error {
+			return nil
+		},
+	}
+	handlers.processorClient = mockClient
+
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -684,6 +702,13 @@ func TestGetAPIHealth_ShouldIncludeLatencyInformation(t *testing.T) {
 func TestGetAPIHealth_ShouldVerifyAllRequiredDirectories(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
+
+	mockClient := &MockProcessorClient{
+		healthCheckFunc: func() error {
+			return nil
+		},
+	}
+	handlers.processorClient = mockClient
 
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()

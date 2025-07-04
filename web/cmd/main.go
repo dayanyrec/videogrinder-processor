@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"video-processor/internal/config"
+	"video-processor/web/internal/config"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,10 +28,10 @@ func main() {
 		c.Next()
 	})
 
-	r.Static("/static", "./web/static")
+	r.Static("/static", cfg.StaticDir)
 
 	r.GET("/", func(c *gin.Context) {
-		c.File("./web/static/index.html")
+		c.File(cfg.StaticDir + "/index.html")
 	})
 
 	r.GET("/health", func(c *gin.Context) {
@@ -42,7 +42,7 @@ func main() {
 	})
 
 	fmt.Printf("🎬 Web Service iniciado na porta %s\n", cfg.Port)
-	fmt.Printf("🌐 Serving static files from ./web/static\n")
+	fmt.Printf("🌐 Serving static files from %s\n", cfg.StaticDir)
 	fmt.Printf("🔧 API URL configurado: %s\n", cfg.APIURL)
 
 	log.Fatal(r.Run(":" + cfg.Port))

@@ -9,16 +9,16 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"video-processor/internal/config"
 	"video-processor/internal/models"
+	"video-processor/processor/internal/config"
 	"video-processor/processor/internal/utils"
 )
 
 type VideoService struct {
-	config *config.Config
+	config *config.ProcessorConfig
 }
 
-func NewVideoService(cfg *config.Config) *VideoService {
+func NewVideoService(cfg *config.ProcessorConfig) *VideoService {
 	return &VideoService{
 		config: cfg,
 	}

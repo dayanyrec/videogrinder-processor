@@ -6,17 +6,21 @@ import (
 	"strings"
 	"testing"
 
-	"video-processor/internal/config"
+	baseConfig "video-processor/internal/config"
+	"video-processor/processor/internal/config"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestVideoService_New(t *testing.T) {
-	cfg := &config.Config{
-		UploadsDir: "uploads",
-		OutputsDir: "outputs",
-		TempDir:    "temp",
+	cfg := &config.ProcessorConfig{
+		Port: "8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{
+			UploadsDir: "uploads",
+			OutputsDir: "outputs",
+			TempDir:    "temp",
+		},
 	}
 
 	service := NewVideoService(cfg)
@@ -26,10 +30,13 @@ func TestVideoService_New(t *testing.T) {
 }
 
 func TestVideoService_ProcessVideo_ValidationErrors(t *testing.T) {
-	cfg := &config.Config{
-		UploadsDir: "uploads",
-		OutputsDir: "outputs",
-		TempDir:    "temp",
+	cfg := &config.ProcessorConfig{
+		Port: "8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{
+			UploadsDir: "uploads",
+			OutputsDir: "outputs",
+			TempDir:    "temp",
+		},
 	}
 	service := NewVideoService(cfg)
 
@@ -78,10 +85,13 @@ func TestVideoService_ProcessVideo_TempDirCreationError(t *testing.T) {
 	defer os.Remove(tempFile.Name())
 	tempFile.Close()
 
-	cfg := &config.Config{
-		UploadsDir: "uploads",
-		OutputsDir: "outputs",
-		TempDir:    tempFile.Name(),
+	cfg := &config.ProcessorConfig{
+		Port: "8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{
+			UploadsDir: "uploads",
+			OutputsDir: "outputs",
+			TempDir:    tempFile.Name(),
+		},
 	}
 	service := NewVideoService(cfg)
 
@@ -97,8 +107,11 @@ func TestVideoService_ProcessVideo_TempDirCreationError(t *testing.T) {
 }
 
 func TestVideoService_extractFrames_PathSafetyValidation(t *testing.T) {
-	cfg := &config.Config{
-		TempDir: "temp",
+	cfg := &config.ProcessorConfig{
+		Port: "8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{
+			TempDir: "temp",
+		},
 	}
 	service := NewVideoService(cfg)
 
@@ -144,8 +157,11 @@ func TestVideoService_createFramesZip_OutputPathValidation(t *testing.T) {
 
 	require.NoError(t, os.MkdirAll(tempDir, 0750))
 
-	cfg := &config.Config{
-		OutputsDir: tempDir,
+	cfg := &config.ProcessorConfig{
+		Port: "8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{
+			OutputsDir: tempDir,
+		},
 	}
 	service := NewVideoService(cfg)
 
@@ -194,7 +210,10 @@ func TestVideoService_createZipFile(t *testing.T) {
 
 	require.NoError(t, os.MkdirAll(tempDir, 0750))
 
-	cfg := &config.Config{}
+	cfg := &config.ProcessorConfig{
+		Port:            "8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{},
+	}
 	service := NewVideoService(cfg)
 
 	testFiles := []string{
@@ -219,7 +238,10 @@ func TestVideoService_createZipFile(t *testing.T) {
 }
 
 func TestVideoService_addFileToZip_InvalidPath(t *testing.T) {
-	cfg := &config.Config{}
+	cfg := &config.ProcessorConfig{
+		Port:            "8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{},
+	}
 	service := NewVideoService(cfg)
 
 	tempDir := filepath.Join(os.TempDir(), "video_service_test_addfile")
@@ -252,10 +274,13 @@ func TestVideoService_ProcessVideo_Integration(t *testing.T) {
 	require.NoError(t, os.MkdirAll(outputsDir, 0750))
 	require.NoError(t, os.MkdirAll(tempVideoDir, 0750))
 
-	cfg := &config.Config{
-		UploadsDir: uploadsDir,
-		OutputsDir: outputsDir,
-		TempDir:    tempVideoDir,
+	cfg := &config.ProcessorConfig{
+		Port: "8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{
+			UploadsDir: uploadsDir,
+			OutputsDir: outputsDir,
+			TempDir:    tempVideoDir,
+		},
 	}
 
 	service := NewVideoService(cfg)
@@ -270,10 +295,13 @@ func TestVideoService_ProcessVideo_Integration(t *testing.T) {
 }
 
 func BenchmarkVideoService_ProcessVideo(b *testing.B) {
-	cfg := &config.Config{
-		UploadsDir: "uploads",
-		OutputsDir: "outputs",
-		TempDir:    "temp",
+	cfg := &config.ProcessorConfig{
+		Port: "8082",
+		DirectoryConfig: &baseConfig.DirectoryConfig{
+			UploadsDir: "uploads",
+			OutputsDir: "outputs",
+			TempDir:    "temp",
+		},
 	}
 	service := NewVideoService(cfg)
 

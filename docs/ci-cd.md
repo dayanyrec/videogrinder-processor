@@ -69,30 +69,31 @@ Resumo do Pipeline 🎉
 
 ## 🔧 Comandos de Desenvolvimento Local
 
-### Comandos de Desenvolvimento (usando container dev)
+### Comandos Rápidos
+```bash
+# Validação local rápida (como validação de PR)
+make ci-validate
+
+# Build da imagem de produção (como CI)
+make ci-build
+
+# Suite completa de testes locais
+make ci-test-local
+```
+
+### Comandos Padrão
 ```bash
 # Verificações de qualidade
+make check          # Completo: format + lint + test
 make fmt            # Formatar código Go + JS
 make lint           # Linting Go + JS
-make test           # Testes unitários Go
-
-# Testes JavaScript
-make test-js        # Testes unitários JS
-make test-js-watch  # Testes JS em modo watch
-make test-e2e       # Testes E2E (requer app rodando)
+make test           # Testes unitários
 
 # Desenvolvimento
 make run            # Iniciar em modo dev
+make test-e2e       # Testes E2E (requer app rodando)
 make logs           # Visualizar logs
 make down           # Parar serviços
-```
-
-### Comandos CI-friendly (para uso em containers)
-```bash
-# Usados pelo CI/CD (funcionam dentro de containers)
-make fmt-ci         # Formatar código (CI-friendly)
-make lint-ci        # Linting (CI-friendly)
-make test-ci        # Testes unitários (CI-friendly)
 ```
 
 ## 🛡️ Segurança & Qualidade

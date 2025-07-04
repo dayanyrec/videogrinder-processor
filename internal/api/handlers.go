@@ -27,7 +27,6 @@ func NewAPIHandlers(cfg *config.Config) *APIHandlers {
 	}
 }
 
-// GetAPIHealth provides comprehensive health check for the API service
 func (ah *APIHandlers) GetAPIHealth(c *gin.Context) {
 	health := gin.H{
 		"status":    "healthy",
@@ -40,7 +39,6 @@ func (ah *APIHandlers) GetAPIHealth(c *gin.Context) {
 		},
 	}
 
-	// Determine overall status based on checks
 	dirCheck := health["checks"].(gin.H)["directories"].(gin.H)
 	procCheck := health["checks"].(gin.H)["processor"].(gin.H)
 
@@ -53,7 +51,6 @@ func (ah *APIHandlers) GetAPIHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, health)
 }
 
-// checkDirectories verifies that all required directories exist and are writable
 func (ah *APIHandlers) checkDirectories() gin.H {
 	directories := []string{
 		ah.config.UploadsDir,
@@ -67,7 +64,6 @@ func (ah *APIHandlers) checkDirectories() gin.H {
 	for _, dir := range directories {
 		dirName := filepath.Base(dir)
 
-		// Check if directory exists
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			details[dirName] = gin.H{
 				"status": "missing",
@@ -78,9 +74,8 @@ func (ah *APIHandlers) checkDirectories() gin.H {
 			continue
 		}
 
-		// Check if directory is writable
 		testFile := filepath.Join(dir, ".health_check_test")
-		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+		if err := os.WriteFile(testFile, []byte("test"), 0600); err != nil {
 			details[dirName] = gin.H{
 				"status": "not_writable",
 				"path":   dir,
@@ -88,8 +83,9 @@ func (ah *APIHandlers) checkDirectories() gin.H {
 			}
 			allHealthy = false
 		} else {
-			// Clean up test file
-			os.Remove(testFile)
+			if err := os.Remove(testFile); err != nil {
+				log.Printf("Warning: Failed to remove test file %s: %v", testFile, err)
+			}
 			details[dirName] = gin.H{
 				"status": "healthy",
 				"path":   dir,
@@ -103,7 +99,6 @@ func (ah *APIHandlers) checkDirectories() gin.H {
 	}
 }
 
-// checkProcessorConnectivity verifies connectivity to the Processor service
 func (ah *APIHandlers) checkProcessorConnectivity() gin.H {
 	start := time.Now()
 	err := ah.processorClient.HealthCheck()
@@ -150,7 +145,6 @@ func (ah *APIHandlers) CreateVideo(c *gin.Context) {
 		return
 	}
 
-	// Check processor health before processing
 	if err := ah.processorClient.HealthCheck(); err != nil {
 		c.JSON(http.StatusServiceUnavailable, models.ProcessingResult{
 			Success: false,
@@ -159,7 +153,6 @@ func (ah *APIHandlers) CreateVideo(c *gin.Context) {
 		return
 	}
 
-	// Send file to processor service
 	result, err := ah.processorClient.ProcessVideo(header.Filename, file)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ProcessingResult{

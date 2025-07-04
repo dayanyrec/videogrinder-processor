@@ -30,7 +30,6 @@ func NewProcessorHandlers(videoService *services.VideoService, cfg *config.Confi
 	}
 }
 
-// ProcessVideoUpload handles video upload and processing
 func (ph *ProcessorHandlers) ProcessVideoUpload(c *gin.Context) {
 	file, header, err := c.Request.FormFile("video")
 	if err != nil {
@@ -58,7 +57,6 @@ func (ph *ProcessorHandlers) ProcessVideoUpload(c *gin.Context) {
 	filename := fmt.Sprintf("%s_%s", timestamp, filepath.Base(header.Filename))
 	videoPath := filepath.Join(ph.config.UploadsDir, filename)
 
-	// Save uploaded file
 	out, err := os.Create(filepath.Clean(videoPath))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ProcessingResult{
@@ -82,10 +80,8 @@ func (ph *ProcessorHandlers) ProcessVideoUpload(c *gin.Context) {
 		return
 	}
 
-	// Process video
 	result := ph.videoService.ProcessVideo(videoPath, timestamp)
 
-	// Clean up uploaded file
 	if err := os.Remove(videoPath); err != nil {
 		log.Printf("Warning: Failed to remove video file %s: %v", videoPath, err)
 	}
@@ -97,7 +93,6 @@ func (ph *ProcessorHandlers) ProcessVideoUpload(c *gin.Context) {
 	}
 }
 
-// GetProcessorStatus returns comprehensive processor service status
 func (ph *ProcessorHandlers) GetProcessorStatus(c *gin.Context) {
 	health := gin.H{
 		"status":    "healthy",
@@ -110,7 +105,6 @@ func (ph *ProcessorHandlers) GetProcessorStatus(c *gin.Context) {
 		},
 	}
 
-	// Determine overall status based on checks
 	dirCheck := health["checks"].(gin.H)["directories"].(gin.H)
 	ffmpegCheck := health["checks"].(gin.H)["ffmpeg"].(gin.H)
 
@@ -123,7 +117,6 @@ func (ph *ProcessorHandlers) GetProcessorStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, health)
 }
 
-// checkDirectories verifies that all required directories exist and are writable
 func (ph *ProcessorHandlers) checkDirectories() gin.H {
 	directories := []string{
 		ph.config.UploadsDir,
@@ -137,7 +130,6 @@ func (ph *ProcessorHandlers) checkDirectories() gin.H {
 	for _, dir := range directories {
 		dirName := filepath.Base(dir)
 
-		// Check if directory exists
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			details[dirName] = gin.H{
 				"status": "missing",
@@ -148,9 +140,8 @@ func (ph *ProcessorHandlers) checkDirectories() gin.H {
 			continue
 		}
 
-		// Check if directory is writable
 		testFile := filepath.Join(dir, ".health_check_test")
-		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+		if err := os.WriteFile(testFile, []byte("test"), 0600); err != nil {
 			details[dirName] = gin.H{
 				"status": "not_writable",
 				"path":   dir,
@@ -158,8 +149,9 @@ func (ph *ProcessorHandlers) checkDirectories() gin.H {
 			}
 			allHealthy = false
 		} else {
-			// Clean up test file
-			os.Remove(testFile)
+			if err := os.Remove(testFile); err != nil {
+				log.Printf("Warning: Failed to remove test file %s: %v", testFile, err)
+			}
 			details[dirName] = gin.H{
 				"status": "healthy",
 				"path":   dir,
@@ -173,11 +165,9 @@ func (ph *ProcessorHandlers) checkDirectories() gin.H {
 	}
 }
 
-// checkFFmpegAvailability verifies FFmpeg is available and functional
 func (ph *ProcessorHandlers) checkFFmpegAvailability() gin.H {
 	start := time.Now()
 
-	// Try to run ffmpeg -version to check availability
 	cmd := exec.Command("ffmpeg", "-version")
 	err := cmd.Run()
 	latency := time.Since(start)
@@ -198,10 +188,9 @@ func (ph *ProcessorHandlers) checkFFmpegAvailability() gin.H {
 	}
 }
 
-// IsValidVideoFile validates video file extensions
 func IsValidVideoFile(filename string) bool {
 	ext := filepath.Ext(filename)
-	if len(ext) > 0 {
+	if ext != "" {
 		ext = ext[1:] // Remove the dot
 	}
 	ext = strings.ToLower(ext)

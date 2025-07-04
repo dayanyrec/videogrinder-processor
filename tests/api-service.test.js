@@ -2,6 +2,16 @@ const ApiService = require('../static/js/api-service.js')
 
 global.fetch = jest.fn()
 
+// Mock window.location
+delete global.window.location
+global.window = Object.create(window)
+global.window.location = {
+  port: '8081',
+  protocol: 'http:',
+  hostname: 'localhost',
+  origin: 'http://localhost:8081'
+}
+
 describe('ApiService Class', () => {
   let apiService
 
@@ -11,8 +21,24 @@ describe('ApiService Class', () => {
   })
 
   describe('constructor', () => {
-    test('should initialize with correct REST API endpoints', () => {
-      expect(apiService.endpoints.videos).toBe('/api/v1/videos')
+    test('should initialize with correct API base URL for production environment', () => {
+      // Default mock is production environment (port 8081)
+      expect(apiService.baseURL).toBe('http://localhost:8081')
+      expect(apiService.endpoints.videos).toBe('http://localhost:8081/api/v1/videos')
+    })
+
+    test('should initialize with API base URL for development environment', () => {
+      // Mock development environment (port 8080)
+      global.window.location.port = '8080'
+      global.window.location.origin = 'http://localhost:8080'
+
+      const devApiService = new ApiService()
+      expect(devApiService.baseURL).toBe('http://localhost:8081')
+      expect(devApiService.endpoints.videos).toBe('http://localhost:8081/api/v1/videos')
+
+      // Reset to production for other tests
+      global.window.location.port = '8081'
+      global.window.location.origin = 'http://localhost:8081'
     })
   })
 
@@ -31,7 +57,7 @@ describe('ApiService Class', () => {
       const mockFormData = new FormData()
       const result = await apiService.uploadVideo(mockFormData)
 
-      expect(fetch).toHaveBeenCalledWith('/api/v1/videos', {
+      expect(fetch).toHaveBeenCalledWith('http://localhost:8081/api/v1/videos', {
         method: 'POST',
         body: mockFormData
       })
@@ -87,7 +113,7 @@ describe('ApiService Class', () => {
 
       const result = await apiService.getFilesList()
 
-      expect(fetch).toHaveBeenCalledWith('/api/v1/videos')
+      expect(fetch).toHaveBeenCalledWith('http://localhost:8081/api/v1/videos')
       expect(result.videos).toEqual(mockVideos)
       expect(result.videos).toHaveLength(2)
       expect(result.total).toBe(2)
@@ -131,7 +157,7 @@ describe('ApiService Class', () => {
 
       const result = await apiService.deleteVideo('test.zip')
 
-      expect(fetch).toHaveBeenCalledWith('/api/v1/videos/test.zip', {
+      expect(fetch).toHaveBeenCalledWith('http://localhost:8081/api/v1/videos/test.zip', {
         method: 'DELETE'
       })
       expect(result).toBe(true)

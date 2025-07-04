@@ -32,9 +32,6 @@ func main() {
 		c.Next()
 	})
 
-	r.Static("/uploads", "./"+cfg.UploadsDir)
-	r.Static("/outputs", "./"+cfg.OutputsDir)
-
 	r.GET("/health", apiHandlers.GetAPIHealth)
 
 	apiV1 := r.Group("/api/v1")

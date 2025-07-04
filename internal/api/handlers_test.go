@@ -19,10 +19,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// MockProcessorClient for testing
 type MockProcessorClient struct {
 	healthCheckFunc  func() error
-	processVideoFunc func(string, io.Reader) (models.ProcessingResult, error)
+	processVideoFunc func(string, io.Reader) (*models.ProcessingResult, error)
 }
 
 func (m *MockProcessorClient) HealthCheck() error {
@@ -32,11 +31,11 @@ func (m *MockProcessorClient) HealthCheck() error {
 	return nil
 }
 
-func (m *MockProcessorClient) ProcessVideo(filename string, fileReader io.Reader) (models.ProcessingResult, error) {
+func (m *MockProcessorClient) ProcessVideo(filename string, fileReader io.Reader) (*models.ProcessingResult, error) {
 	if m.processVideoFunc != nil {
 		return m.processVideoFunc(filename, fileReader)
 	}
-	return models.ProcessingResult{
+	return &models.ProcessingResult{
 		Success:    true,
 		Message:    "Processamento concluído! 5 frames extraídos.",
 		ZipPath:    "frames_test.zip",
@@ -145,7 +144,6 @@ func TestCreateVideo_ShouldReturnServiceUnavailableWhenProcessorIsDown(t *testin
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
-	// Mock processor as unavailable
 	mockClient := &MockProcessorClient{
 		healthCheckFunc: func() error {
 			return assert.AnError
@@ -183,13 +181,12 @@ func TestCreateVideo_ShouldReturnCreatedWhenVideoProcessingSucceeds(t *testing.T
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
-	// Mock successful processing
 	mockClient := &MockProcessorClient{
 		healthCheckFunc: func() error {
 			return nil
 		},
-		processVideoFunc: func(filename string, fileReader io.Reader) (models.ProcessingResult, error) {
-			return models.ProcessingResult{
+		processVideoFunc: func(filename string, fileReader io.Reader) (*models.ProcessingResult, error) {
+			return &models.ProcessingResult{
 				Success:    true,
 				Message:    "Processamento concluído! 5 frames extraídos.",
 				ZipPath:    "frames_test.zip",
@@ -231,13 +228,12 @@ func TestCreateVideo_ShouldReturnUnprocessableEntityWhenProcessingFails(t *testi
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
-	// Mock failed processing
 	mockClient := &MockProcessorClient{
 		healthCheckFunc: func() error {
 			return nil
 		},
-		processVideoFunc: func(filename string, fileReader io.Reader) (models.ProcessingResult, error) {
-			return models.ProcessingResult{
+		processVideoFunc: func(filename string, fileReader io.Reader) (*models.ProcessingResult, error) {
+			return &models.ProcessingResult{
 				Success: false,
 				Message: "Erro ao processar vídeo: formato inválido",
 			}, nil
@@ -573,16 +569,13 @@ func TestGetAPIHealth_ShouldReturnHealthyStatusWhenAllServicesAreOperational(t *
 	assert.NotNil(t, response["timestamp"])
 	assert.Equal(t, "1.0.0", response["version"])
 
-	// Check that we have both directories and processor checks
 	checks := response["checks"].(map[string]interface{})
 	assert.NotNil(t, checks["directories"])
 	assert.NotNil(t, checks["processor"])
 
-	// Check directories health
 	directories := checks["directories"].(map[string]interface{})
 	assert.Equal(t, "healthy", directories["status"])
 
-	// Check processor health (should be healthy with mock)
 	processor := checks["processor"].(map[string]interface{})
 	assert.Equal(t, "healthy", processor["status"])
 }
@@ -591,7 +584,6 @@ func TestGetAPIHealth_ShouldReturnUnhealthyStatusWhenProcessorIsDown(t *testing.
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
-	// Mock processor as unavailable
 	mockClient := &MockProcessorClient{
 		healthCheckFunc: func() error {
 			return assert.AnError
@@ -617,7 +609,6 @@ func TestGetAPIHealth_ShouldReturnUnhealthyStatusWhenProcessorIsDown(t *testing.
 	assert.Equal(t, "unhealthy", response["status"])
 	assert.Equal(t, "videogrinder-api", response["service"])
 
-	// Check that processor is marked as unhealthy
 	checks := response["checks"].(map[string]interface{})
 	processor := checks["processor"].(map[string]interface{})
 	assert.Equal(t, "unhealthy", processor["status"])
@@ -629,7 +620,6 @@ func TestGetAPIHealth_ShouldReturnUnhealthyStatusWhenDirectoriesAreMissing(t *te
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
 
-	// Create a non-existent directory to simulate missing directory
 	tempDir := filepath.Join(os.TempDir(), "non_existent_test_dir")
 	handlers.config.UploadsDir = tempDir
 
@@ -650,12 +640,10 @@ func TestGetAPIHealth_ShouldReturnUnhealthyStatusWhenDirectoriesAreMissing(t *te
 
 	assert.Equal(t, "unhealthy", response["status"])
 
-	// Check that directories are marked as unhealthy
 	checks := response["checks"].(map[string]interface{})
 	directories := checks["directories"].(map[string]interface{})
 	assert.Equal(t, "unhealthy", directories["status"])
 
-	// Check details for uploads directory specifically
 	details := directories["details"].(map[string]interface{})
 	uploads := details["non_existent_test_dir"].(map[string]interface{})
 	assert.Equal(t, "missing", uploads["status"])
@@ -681,7 +669,6 @@ func TestGetAPIHealth_ShouldIncludeLatencyInformation(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 
-	// Check processor latency information
 	checks := response["checks"].(map[string]interface{})
 	processor := checks["processor"].(map[string]interface{})
 

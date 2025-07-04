@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"time"
@@ -12,100 +13,80 @@ import (
 	"video-processor/internal/models"
 )
 
-// ProcessorClientInterface defines the interface for processor client operations
 type ProcessorClientInterface interface {
-	ProcessVideo(filename string, fileReader io.Reader) (models.ProcessingResult, error)
+	ProcessVideo(filename string, videoFile io.Reader) (*models.ProcessingResult, error)
 	HealthCheck() error
 }
 
 type ProcessorClient struct {
-	baseURL    string
-	httpClient *http.Client
+	baseURL string
+	client  *http.Client
 }
 
 func NewProcessorClient(baseURL string) *ProcessorClient {
 	return &ProcessorClient{
 		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: 5 * time.Minute, // Video processing can take time
+		client: &http.Client{
+			Timeout: 300 * time.Second, // 5 minutes for video processing
 		},
 	}
 }
 
-// ProcessVideo sends a video file to the processor service for processing
-func (pc *ProcessorClient) ProcessVideo(filename string, fileReader io.Reader) (models.ProcessingResult, error) {
-	// Create multipart form
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
+func (pc *ProcessorClient) ProcessVideo(filename string, videoFile io.Reader) (*models.ProcessingResult, error) {
+	var requestBody bytes.Buffer
+	writer := multipart.NewWriter(&requestBody)
 
-	// Create form file
 	part, err := writer.CreateFormFile("video", filename)
 	if err != nil {
-		return models.ProcessingResult{}, err
+		return nil, fmt.Errorf("failed to create form file: %w", err)
 	}
 
-	// Copy file content
-	_, err = io.Copy(part, fileReader)
-	if err != nil {
-		return models.ProcessingResult{}, err
+	if _, err := io.Copy(part, videoFile); err != nil {
+		return nil, fmt.Errorf("failed to copy file content: %w", err)
 	}
 
-	// Close writer to finalize the form
-	err = writer.Close()
-	if err != nil {
-		return models.ProcessingResult{}, err
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close writer: %w", err)
 	}
 
-	// Create request
-	url := fmt.Sprintf("%s/process", pc.baseURL)
-	req, err := http.NewRequest("POST", url, &buf)
+	req, err := http.NewRequest("POST", pc.baseURL+"/process", &requestBody)
 	if err != nil {
-		return models.ProcessingResult{}, err
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	// Send request
-	resp, err := pc.httpClient.Do(req)
+	resp, err := pc.client.Do(req)
 	if err != nil {
-		return models.ProcessingResult{}, fmt.Errorf("failed to send request to processor: %w", err)
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			fmt.Printf("Warning: Failed to close response body: %v\n", err)
+			log.Printf("Warning: Failed to close response body: %v", err)
 		}
 	}()
 
-	// Read response
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return models.ProcessingResult{}, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	// Parse response
 	var result models.ProcessingResult
-	if err := json.Unmarshal(body, &result); err != nil {
-		return models.ProcessingResult{}, fmt.Errorf("failed to parse response: %w", err)
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return result, nil
+	return &result, nil
 }
 
-// HealthCheck checks if the processor service is healthy
 func (pc *ProcessorClient) HealthCheck() error {
-	url := fmt.Sprintf("%s/health", pc.baseURL)
-	resp, err := pc.httpClient.Get(url)
+	resp, err := pc.client.Get(pc.baseURL + "/health")
 	if err != nil {
-		return fmt.Errorf("processor service unavailable: %w", err)
+		return fmt.Errorf("failed to connect to processor service: %w", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			fmt.Printf("Warning: Failed to close response body: %v\n", err)
+			log.Printf("Warning: Failed to close response body: %v", err)
 		}
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("processor service unhealthy: status %d", resp.StatusCode)
+		return fmt.Errorf("processor service returned status %d", resp.StatusCode)
 	}
 
 	return nil

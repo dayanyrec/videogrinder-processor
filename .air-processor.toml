@@ -5,7 +5,7 @@ tmp_dir = "tmp"
 [build]
   args_bin = []
   bin = "./tmp/processor"
-  cmd = "go build -buildvcs=false -o ./tmp/processor ./cmd/processor"
+  cmd = "go build -buildvcs=false -o ./tmp/processor ./processor/cmd"
   delay = 100
   exclude_dir = ["tmp", "vendor", "testdata", "uploads", "outputs", "temp", "bin", ".git", "docs", "node_modules", "cypress", ".github", ".vscode", ".idea"]
   exclude_file = []

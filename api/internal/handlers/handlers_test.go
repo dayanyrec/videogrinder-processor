@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"video-processor/api/internal/config"
+	"video-processor/api/internal/models"
 	baseConfig "video-processor/internal/config"
-	"video-processor/internal/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

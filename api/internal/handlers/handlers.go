@@ -10,7 +10,7 @@ import (
 
 	"video-processor/api/internal/clients"
 	"video-processor/api/internal/config"
-	"video-processor/internal/models"
+	"video-processor/api/internal/models"
 
 	"github.com/gin-gonic/gin"
 )

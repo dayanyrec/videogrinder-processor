@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"video-processor/internal/models"
+	"video-processor/api/internal/models"
 )
 
 type ProcessorClientInterface interface {

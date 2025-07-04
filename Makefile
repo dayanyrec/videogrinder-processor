@@ -66,7 +66,7 @@ setup: ## Configure environment (usage: make setup [dev|prod])
 
 run: ## Run all 3 services (Web + API + Processor) (usage: make run [dev|prod])
 	@echo "🚀 Starting all 3 services (Web + API + Processor) in $(ENV) mode..."
-	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+	$(COMPOSE_CMD) --profile $(PROFILE) up -d --build $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
 
 run-api: ## Run only API service (usage: make run-api [dev|prod])
 	@echo "🎬 Starting API service in $(ENV) mode..."

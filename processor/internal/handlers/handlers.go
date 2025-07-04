@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"video-processor/internal/models"
 	"video-processor/processor/internal/config"
+	"video-processor/processor/internal/models"
 	"video-processor/processor/internal/services"
 
 	"github.com/gin-gonic/gin"

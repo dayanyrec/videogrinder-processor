@@ -1,10 +1,5 @@
 package models
 
-type VideoRequest struct {
-	VideoPath string `json:"video_path"`
-	OutputDir string `json:"output_dir"`
-}
-
 type ProcessingResult struct {
 	Success    bool     `json:"success"`
 	Message    string   `json:"message"`

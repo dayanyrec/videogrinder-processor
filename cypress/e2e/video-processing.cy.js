@@ -1,4 +1,6 @@
 describe('VideoGrinder - Video Processing E2E Tests', () => {
+  const API_BASE_URL = 'http://localhost:8081'
+
   beforeEach(() => {
     cy.resetAppState()
   })
@@ -17,7 +19,7 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
     })
 
     it('should load status endpoint', () => {
-      cy.request('/api/v1/videos').then((response) => {
+      cy.request(`${API_BASE_URL}/api/v1/videos`).then((response) => {
         expect(response.status).to.eq(200)
         expect(response.body).to.have.property('videos')
         expect(response.body).to.have.property('total')
@@ -82,7 +84,7 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
     })
 
     it('should handle server errors gracefully', () => {
-      cy.intercept('POST', '/api/v1/videos', {
+      cy.intercept('POST', `${API_BASE_URL}/api/v1/videos`, {
         statusCode: 500,
         body: { success: false, message: 'Erro interno do servidor' }
       }).as('uploadError')
@@ -106,7 +108,8 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
       cy.uploadAndProcess('test-video-valid.mp4')
 
       cy.get('#filesList a[href*="/api/v1/videos/"]').first().then(($link) => {
-        cy.request($link.attr('href')).then((response) => {
+        const downloadUrl = $link.attr('href').replace('/api/v1/videos/', `${API_BASE_URL}/api/v1/videos/`)
+        cy.request(downloadUrl).then((response) => {
           expect(response.status).to.eq(200)
           expect(response.headers['content-type']).to.eq('application/zip')
           expect(response.headers['content-disposition']).to.contain('attachment')
@@ -116,7 +119,7 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
 
     it('should handle non-existent file downloads', () => {
       cy.request({
-        url: '/api/v1/videos/non-existent-file.zip/download',
+        url: `${API_BASE_URL}/api/v1/videos/non-existent-file.zip/download`,
         failOnStatusCode: false
       }).then((response) => {
         expect(response.status).to.eq(404)
@@ -165,17 +168,18 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
     })
 
     it('should handle CORS correctly', () => {
-      cy.request('/api/v1/videos').then((response) => {
+      cy.request(`${API_BASE_URL}/api/v1/videos`).then((response) => {
         expect(response.headers).to.have.property('access-control-allow-origin')
       })
     })
   })
 })
 
-// Separate test suite for API testing
 describe('VideoGrinder - API E2E Tests', () => {
+  const API_BASE_URL = 'http://localhost:8081'
+
   it('should return proper status information', () => {
-    cy.request('/api/v1/videos').then((response) => {
+    cy.request(`${API_BASE_URL}/api/v1/videos`).then((response) => {
       expect(response.status).to.eq(200)
       expect(response.body).to.have.property('videos').that.is.an('array')
       expect(response.body).to.have.property('total').that.is.a('number')
@@ -189,7 +193,7 @@ describe('VideoGrinder - API E2E Tests', () => {
 
     cy.request({
       method: 'POST',
-      url: '/api/v1/videos',
+      url: `${API_BASE_URL}/api/v1/videos`,
       body: formData,
       failOnStatusCode: false
     }).then((response) => {

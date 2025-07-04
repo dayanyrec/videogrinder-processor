@@ -548,3 +548,182 @@ func BenchmarkGetVideos_ShouldPerformEfficientlyUnderLoad(b *testing.B) {
 		handlers.GetVideos(c)
 	}
 }
+
+func TestGetAPIHealth_ShouldReturnHealthyStatusWhenAllServicesAreOperational(t *testing.T) {
+	handlers, cleanup := setupTestHandlers()
+	defer cleanup()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	req := httptest.NewRequest("GET", "/health", http.NoBody)
+	c.Request = req
+
+	handlers.GetAPIHealth(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	assert.Equal(t, "healthy", response["status"])
+	assert.Equal(t, "videogrinder-api", response["service"])
+	assert.NotNil(t, response["timestamp"])
+	assert.Equal(t, "1.0.0", response["version"])
+
+	// Check that we have both directories and processor checks
+	checks := response["checks"].(map[string]interface{})
+	assert.NotNil(t, checks["directories"])
+	assert.NotNil(t, checks["processor"])
+
+	// Check directories health
+	directories := checks["directories"].(map[string]interface{})
+	assert.Equal(t, "healthy", directories["status"])
+
+	// Check processor health (should be healthy with mock)
+	processor := checks["processor"].(map[string]interface{})
+	assert.Equal(t, "healthy", processor["status"])
+}
+
+func TestGetAPIHealth_ShouldReturnUnhealthyStatusWhenProcessorIsDown(t *testing.T) {
+	handlers, cleanup := setupTestHandlers()
+	defer cleanup()
+
+	// Mock processor as unavailable
+	mockClient := &MockProcessorClient{
+		healthCheckFunc: func() error {
+			return assert.AnError
+		},
+	}
+	handlers.processorClient = mockClient
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	req := httptest.NewRequest("GET", "/health", http.NoBody)
+	c.Request = req
+
+	handlers.GetAPIHealth(c)
+
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	assert.Equal(t, "unhealthy", response["status"])
+	assert.Equal(t, "videogrinder-api", response["service"])
+
+	// Check that processor is marked as unhealthy
+	checks := response["checks"].(map[string]interface{})
+	processor := checks["processor"].(map[string]interface{})
+	assert.Equal(t, "unhealthy", processor["status"])
+	assert.NotNil(t, processor["error"])
+	assert.NotNil(t, processor["latency_ms"])
+}
+
+func TestGetAPIHealth_ShouldReturnUnhealthyStatusWhenDirectoriesAreMissing(t *testing.T) {
+	handlers, cleanup := setupTestHandlers()
+	defer cleanup()
+
+	// Create a non-existent directory to simulate missing directory
+	tempDir := filepath.Join(os.TempDir(), "non_existent_test_dir")
+	handlers.config.UploadsDir = tempDir
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	req := httptest.NewRequest("GET", "/health", http.NoBody)
+	c.Request = req
+
+	handlers.GetAPIHealth(c)
+
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	assert.Equal(t, "unhealthy", response["status"])
+
+	// Check that directories are marked as unhealthy
+	checks := response["checks"].(map[string]interface{})
+	directories := checks["directories"].(map[string]interface{})
+	assert.Equal(t, "unhealthy", directories["status"])
+
+	// Check details for uploads directory specifically
+	details := directories["details"].(map[string]interface{})
+	uploads := details["non_existent_test_dir"].(map[string]interface{})
+	assert.Equal(t, "missing", uploads["status"])
+	assert.Contains(t, uploads["error"], "does not exist")
+}
+
+func TestGetAPIHealth_ShouldIncludeLatencyInformation(t *testing.T) {
+	handlers, cleanup := setupTestHandlers()
+	defer cleanup()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	req := httptest.NewRequest("GET", "/health", http.NoBody)
+	c.Request = req
+
+	handlers.GetAPIHealth(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	// Check processor latency information
+	checks := response["checks"].(map[string]interface{})
+	processor := checks["processor"].(map[string]interface{})
+
+	assert.NotNil(t, processor["latency_ms"])
+	assert.NotNil(t, processor["last_check"])
+	assert.NotNil(t, processor["url"])
+
+	// Latency should be a number >= 0
+	latency := processor["latency_ms"].(float64)
+	assert.GreaterOrEqual(t, latency, float64(0))
+}
+
+func TestGetAPIHealth_ShouldVerifyAllRequiredDirectories(t *testing.T) {
+	handlers, cleanup := setupTestHandlers()
+	defer cleanup()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	req := httptest.NewRequest("GET", "/health", http.NoBody)
+	c.Request = req
+
+	handlers.GetAPIHealth(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	// Check that all directories are verified
+	checks := response["checks"].(map[string]interface{})
+	directories := checks["directories"].(map[string]interface{})
+	details := directories["details"].(map[string]interface{})
+
+	// Should have checks for uploads, outputs, and temp directories
+	expectedDirs := []string{"uploads", "outputs", "temp"}
+	for _, dirName := range expectedDirs {
+		assert.Contains(t, details, dirName)
+		dir := details[dirName].(map[string]interface{})
+		assert.Equal(t, "healthy", dir["status"])
+		assert.NotNil(t, dir["path"])
+	}
+}

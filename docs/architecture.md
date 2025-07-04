@@ -94,7 +94,7 @@ graph TB
 
 **Endpoints Principais:**
 - `POST /process` - Processamento de vídeo
-- `GET /health` - Status de saúde do serviço
+- `GET /health` - Status de saúde do serviço (status, service, timestamp)
 
 **Tecnologias:**
 - **Go + Gin**: Framework HTTP
@@ -166,22 +166,81 @@ httpClient: &http.Client{
 ```
 
 ### Health Check
+
+**Processor Service (Padronizado):**
 ```bash
-# Verificação automática antes de processar
 GET http://localhost:8081/health
 
 Response:
 {
   "status": "healthy",
-  "service": "video-processor",
-  "timestamp": 1751591773
+  "service": "videogrinder-processor",
+  "timestamp": 1751595012,
+  "version": "1.0.0",
+  "checks": {
+    "directories": {
+      "status": "healthy",
+      "details": {
+        "uploads": { "status": "healthy", "path": "uploads" },
+        "outputs": { "status": "healthy", "path": "outputs" },
+        "temp": { "status": "healthy", "path": "temp" }
+      }
+    },
+    "ffmpeg": {
+      "status": "healthy",
+      "latency_ms": 69,
+      "last_check": 1751595012
+    }
+  }
 }
 ```
 
-### Tratamento de Erros
-- **503 Service Unavailable**: Processor indisponível
-- **422 Unprocessable Entity**: Erro no processamento
-- **201 Created**: Processamento bem-sucedido
+**API Service (Padronizado):**
+```bash
+GET http://localhost:8080/health
+GET http://localhost:8080/api/v1/health
+
+Response:
+{
+  "status": "healthy",
+  "service": "videogrinder-api",
+  "timestamp": 1751595019,
+  "version": "1.0.0",
+  "checks": {
+    "directories": {
+      "status": "healthy",
+      "details": {
+        "uploads": { "status": "healthy", "path": "uploads" },
+        "outputs": { "status": "healthy", "path": "outputs" },
+        "temp": { "status": "healthy", "path": "temp" }
+      }
+    },
+    "processor": {
+      "status": "healthy",
+      "url": "http://videogrinder-processor-dev:8081",
+      "latency_ms": 50,
+      "last_check": 1751595019
+    }
+  }
+}
+```
+
+### Padrão de Health Check
+
+**Estrutura Padronizada:**
+- `status`: "healthy" | "unhealthy"
+- `service`: Nome do serviço (videogrinder-api | videogrinder-processor)
+- `timestamp`: Unix timestamp da verificação
+- `version`: Versão do serviço
+- `checks`: Objeto com verificações específicas por serviço
+
+**Verificações por Serviço:**
+- **API Service**: directories + processor connectivity
+- **Processor Service**: directories + ffmpeg availability
+
+**Códigos de Resposta:**
+- **200 OK**: Todos os checks passaram
+- **503 Service Unavailable**: Algum check falhou
 
 ## 📦 Estrutura de Código
 

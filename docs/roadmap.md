@@ -72,7 +72,9 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 
 ### 4.0 - Setup
 
-- [ ] API e processor não devem se integrar diretamente e sim por HTTP
+- [x] API e processor não devem se integrar diretamente e sim por HTTP
+- [x] Adicionar health check endpoints robustos
+- [x] Padronizar formato de health check entre API e Processor (estrutura unificada com checks específicos)
 
 ### 4.1 - Preparação dos repositórios
 
@@ -143,8 +145,6 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 ### 1.3 - Observabilidade e Monitoramento
 - [ ] Implementar logging estruturado em JSON
 - [ ] Melhorar tratamento de erros com contexto adequado
-- [ ] Adicionar health check endpoints robustos
-
 - [ ] Integrar CloudWatch Logs para desenvolvimento
 - [ ] Implementar métricas básicas de performance
 - [ ] Adicionar monitoramento de recursos (CPU, memória, I/O)

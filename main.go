@@ -39,8 +39,10 @@ func main() {
 	r.Static("/static", "./static")
 
 	r.GET("/", webHandlers.HandleHome)
+	r.GET("/health", apiHandlers.GetAPIHealth)
 
 	apiV1 := r.Group("/api/v1")
+	apiV1.GET("/health", apiHandlers.GetAPIHealth)
 	apiV1.POST("/videos", apiHandlers.CreateVideo)
 	apiV1.GET("/videos", apiHandlers.GetVideos)
 	apiV1.GET("/videos/:filename/download", apiHandlers.GetVideoDownload)

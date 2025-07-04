@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"video-processor/internal/clients"
 	"video-processor/internal/config"
@@ -23,6 +24,106 @@ func NewAPIHandlers(cfg *config.Config) *APIHandlers {
 	return &APIHandlers{
 		processorClient: clients.NewProcessorClient(cfg.ProcessorURL),
 		config:          cfg,
+	}
+}
+
+// GetAPIHealth provides comprehensive health check for the API service
+func (ah *APIHandlers) GetAPIHealth(c *gin.Context) {
+	health := gin.H{
+		"status":    "healthy",
+		"service":   "videogrinder-api",
+		"timestamp": time.Now().Unix(),
+		"version":   "1.0.0",
+		"checks": gin.H{
+			"directories": ah.checkDirectories(),
+			"processor":   ah.checkProcessorConnectivity(),
+		},
+	}
+
+	// Determine overall status based on checks
+	dirCheck := health["checks"].(gin.H)["directories"].(gin.H)
+	procCheck := health["checks"].(gin.H)["processor"].(gin.H)
+
+	if dirCheck["status"] != "healthy" || procCheck["status"] != "healthy" {
+		health["status"] = "unhealthy"
+		c.JSON(http.StatusServiceUnavailable, health)
+		return
+	}
+
+	c.JSON(http.StatusOK, health)
+}
+
+// checkDirectories verifies that all required directories exist and are writable
+func (ah *APIHandlers) checkDirectories() gin.H {
+	directories := []string{
+		ah.config.UploadsDir,
+		ah.config.OutputsDir,
+		ah.config.TempDir,
+	}
+
+	allHealthy := true
+	details := make(gin.H)
+
+	for _, dir := range directories {
+		dirName := filepath.Base(dir)
+
+		// Check if directory exists
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			details[dirName] = gin.H{
+				"status": "missing",
+				"path":   dir,
+				"error":  "Directory does not exist",
+			}
+			allHealthy = false
+			continue
+		}
+
+		// Check if directory is writable
+		testFile := filepath.Join(dir, ".health_check_test")
+		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+			details[dirName] = gin.H{
+				"status": "not_writable",
+				"path":   dir,
+				"error":  "Directory is not writable: " + err.Error(),
+			}
+			allHealthy = false
+		} else {
+			// Clean up test file
+			os.Remove(testFile)
+			details[dirName] = gin.H{
+				"status": "healthy",
+				"path":   dir,
+			}
+		}
+	}
+
+	return gin.H{
+		"status":  map[bool]string{true: "healthy", false: "unhealthy"}[allHealthy],
+		"details": details,
+	}
+}
+
+// checkProcessorConnectivity verifies connectivity to the Processor service
+func (ah *APIHandlers) checkProcessorConnectivity() gin.H {
+	start := time.Now()
+	err := ah.processorClient.HealthCheck()
+	latency := time.Since(start)
+
+	if err != nil {
+		return gin.H{
+			"status":     "unhealthy",
+			"url":        ah.config.ProcessorURL,
+			"error":      err.Error(),
+			"latency_ms": latency.Milliseconds(),
+			"last_check": time.Now().Unix(),
+		}
+	}
+
+	return gin.H{
+		"status":     "healthy",
+		"url":        ah.config.ProcessorURL,
+		"latency_ms": latency.Milliseconds(),
+		"last_check": time.Now().Unix(),
 	}
 }
 

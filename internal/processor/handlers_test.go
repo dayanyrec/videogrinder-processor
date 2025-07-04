@@ -160,9 +160,129 @@ func TestGetProcessorStatus_ShouldReturnHealthyStatusWhenServiceIsRunning(t *tes
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
+
 	assert.Equal(t, "healthy", response["status"])
-	assert.Equal(t, "video-processor", response["service"])
+	assert.Equal(t, "videogrinder-processor", response["service"])
 	assert.NotNil(t, response["timestamp"])
+	assert.Equal(t, "1.0.0", response["version"])
+
+	// Check that we have both directories and ffmpeg checks
+	checks := response["checks"].(map[string]interface{})
+	assert.NotNil(t, checks["directories"])
+	assert.NotNil(t, checks["ffmpeg"])
+
+	// Check directories health
+	directories := checks["directories"].(map[string]interface{})
+	assert.Equal(t, "healthy", directories["status"])
+
+	// Check ffmpeg health - it might be unhealthy in CI/test environment
+	ffmpeg := checks["ffmpeg"].(map[string]interface{})
+	assert.Contains(t, []string{"healthy", "unhealthy"}, ffmpeg["status"])
+	assert.NotNil(t, ffmpeg["latency_ms"])
+	assert.NotNil(t, ffmpeg["last_check"])
+}
+
+func TestGetProcessorStatus_ShouldReturnUnhealthyStatusWhenDirectoriesAreMissing(t *testing.T) {
+	handlers, cleanup := setupTestProcessorHandlers()
+	defer cleanup()
+
+	// Create a non-existent directory to simulate missing directory
+	tempDir := filepath.Join(os.TempDir(), "non_existent_processor_test_dir")
+	handlers.config.UploadsDir = tempDir
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	req := httptest.NewRequest("GET", "/health", http.NoBody)
+	c.Request = req
+
+	handlers.GetProcessorStatus(c)
+
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	assert.Equal(t, "unhealthy", response["status"])
+	assert.Equal(t, "videogrinder-processor", response["service"])
+
+	// Check that directories are marked as unhealthy
+	checks := response["checks"].(map[string]interface{})
+	directories := checks["directories"].(map[string]interface{})
+	assert.Equal(t, "unhealthy", directories["status"])
+
+	// Check details for uploads directory specifically
+	details := directories["details"].(map[string]interface{})
+	uploads := details["non_existent_processor_test_dir"].(map[string]interface{})
+	assert.Equal(t, "missing", uploads["status"])
+	assert.Contains(t, uploads["error"], "does not exist")
+}
+
+func TestGetProcessorStatus_ShouldIncludeLatencyInformation(t *testing.T) {
+	handlers, cleanup := setupTestProcessorHandlers()
+	defer cleanup()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	req := httptest.NewRequest("GET", "/health", http.NoBody)
+	c.Request = req
+
+	handlers.GetProcessorStatus(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	// Check ffmpeg latency information
+	checks := response["checks"].(map[string]interface{})
+	ffmpeg := checks["ffmpeg"].(map[string]interface{})
+
+	assert.NotNil(t, ffmpeg["latency_ms"])
+	assert.NotNil(t, ffmpeg["last_check"])
+
+	// Latency should be a number >= 0
+	latency := ffmpeg["latency_ms"].(float64)
+	assert.GreaterOrEqual(t, latency, float64(0))
+}
+
+func TestGetProcessorStatus_ShouldVerifyAllRequiredDirectories(t *testing.T) {
+	handlers, cleanup := setupTestProcessorHandlers()
+	defer cleanup()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	req := httptest.NewRequest("GET", "/health", http.NoBody)
+	c.Request = req
+
+	handlers.GetProcessorStatus(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+
+	// Check that all directories are verified
+	checks := response["checks"].(map[string]interface{})
+	directories := checks["directories"].(map[string]interface{})
+	details := directories["details"].(map[string]interface{})
+
+	// Should have checks for uploads, outputs, and temp directories
+	expectedDirs := []string{"uploads", "outputs", "temp"}
+	for _, dirName := range expectedDirs {
+		assert.Contains(t, details, dirName)
+		dir := details[dirName].(map[string]interface{})
+		assert.Equal(t, "healthy", dir["status"])
+		assert.NotNil(t, dir["path"])
+	}
 }
 
 func TestProcessorHandlers_Integration_ShouldProvideFullProcessingWorkflow(t *testing.T) {

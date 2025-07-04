@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -96,13 +97,105 @@ func (ph *ProcessorHandlers) ProcessVideoUpload(c *gin.Context) {
 	}
 }
 
-// GetProcessorStatus returns processor service status
+// GetProcessorStatus returns comprehensive processor service status
 func (ph *ProcessorHandlers) GetProcessorStatus(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
+	health := gin.H{
 		"status":    "healthy",
-		"service":   "video-processor",
+		"service":   "videogrinder-processor",
 		"timestamp": time.Now().Unix(),
-	})
+		"version":   "1.0.0",
+		"checks": gin.H{
+			"directories": ph.checkDirectories(),
+			"ffmpeg":      ph.checkFFmpegAvailability(),
+		},
+	}
+
+	// Determine overall status based on checks
+	dirCheck := health["checks"].(gin.H)["directories"].(gin.H)
+	ffmpegCheck := health["checks"].(gin.H)["ffmpeg"].(gin.H)
+
+	if dirCheck["status"] != "healthy" || ffmpegCheck["status"] != "healthy" {
+		health["status"] = "unhealthy"
+		c.JSON(http.StatusServiceUnavailable, health)
+		return
+	}
+
+	c.JSON(http.StatusOK, health)
+}
+
+// checkDirectories verifies that all required directories exist and are writable
+func (ph *ProcessorHandlers) checkDirectories() gin.H {
+	directories := []string{
+		ph.config.UploadsDir,
+		ph.config.OutputsDir,
+		ph.config.TempDir,
+	}
+
+	allHealthy := true
+	details := make(gin.H)
+
+	for _, dir := range directories {
+		dirName := filepath.Base(dir)
+
+		// Check if directory exists
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			details[dirName] = gin.H{
+				"status": "missing",
+				"path":   dir,
+				"error":  "Directory does not exist",
+			}
+			allHealthy = false
+			continue
+		}
+
+		// Check if directory is writable
+		testFile := filepath.Join(dir, ".health_check_test")
+		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+			details[dirName] = gin.H{
+				"status": "not_writable",
+				"path":   dir,
+				"error":  "Directory is not writable: " + err.Error(),
+			}
+			allHealthy = false
+		} else {
+			// Clean up test file
+			os.Remove(testFile)
+			details[dirName] = gin.H{
+				"status": "healthy",
+				"path":   dir,
+			}
+		}
+	}
+
+	return gin.H{
+		"status":  map[bool]string{true: "healthy", false: "unhealthy"}[allHealthy],
+		"details": details,
+	}
+}
+
+// checkFFmpegAvailability verifies FFmpeg is available and functional
+func (ph *ProcessorHandlers) checkFFmpegAvailability() gin.H {
+	start := time.Now()
+
+	// Try to run ffmpeg -version to check availability
+	cmd := exec.Command("ffmpeg", "-version")
+	err := cmd.Run()
+	latency := time.Since(start)
+
+	if err != nil {
+		return gin.H{
+			"status":     "unhealthy",
+			"error":      "FFmpeg not available: " + err.Error(),
+			"latency_ms": latency.Milliseconds(),
+			"last_check": time.Now().Unix(),
+		}
+	}
+
+	return gin.H{
+		"status":     "healthy",
+		"latency_ms": latency.Milliseconds(),
+		"last_check": time.Now().Unix(),
+	}
 }
 
 // IsValidVideoFile validates video file extensions

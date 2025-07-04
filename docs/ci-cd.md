@@ -46,10 +46,26 @@ make health         # Health check completo
 ### Health Check Completo
 ```bash
 make health
-# ✅ Web Service (8080)
-# ✅ API Service (8081) 
-# ✅ Processor Service (8082)
+# Exemplo de saída com todos os serviços saudáveis:
+# 🏥 Checking application health...
+# 🌐 Checking Web Service (port 8080)...
+# ✅ Web Service: healthy
+# 🔌 Checking API Service (port 8081)...
+# ✅ API Service: healthy
+# ⚙️  Checking Processor Service (port 8082)...
+# ✅ Processor Service: healthy
+# ✅ All services are healthy!
 ```
+
+> **Nota:**
+> O comando `make health` mostra apenas o status de cada serviço.
+> Se algum serviço falhar, a execução para imediatamente e exibe uma dica:
+> 
+> ```
+> ❌ Web Service: failed
+> 💡 Dica: rode 'make logs-tail' para ver os logs.
+> ```
+> Assim, fica fácil identificar e debugar problemas rapidamente.
 
 ## ⚡ Benefícios da Simplificação
 
@@ -103,6 +119,45 @@ Cada serviço retorna:
 - Verificação de dependências
 - Latência de resposta
 - Estado dos diretórios
+
+## 📋 Comandos de Logs
+
+### Logs sem Travar Execução
+```bash
+make logs-tail           # Últimas 50 linhas de todos os serviços
+make logs-web-tail       # Últimas 30 linhas do Web service
+make logs-api-tail       # Últimas 30 linhas do API service  
+make logs-processor-tail # Últimas 30 linhas do Processor service
+```
+
+### Logs com Follow (para desenvolvimento)
+```bash
+make logs               # Todos os serviços (travado)
+make logs-web           # Web service (travado)
+make logs-api           # API service (travado)
+make logs-processor     # Processor service (travado)
+```
+
+**Uso**: `make logs-tail [dev|prod]` - padrão é `dev`
+
+### Exemplo de Uso
+```bash
+# Para CI/CD - logs rápidos sem travar
+make logs-tail prod
+
+# Para debug específico
+make logs-api-tail dev
+
+# Para monitoramento contínuo
+make logs-web dev
+```
+
+### CI/CD Pipeline
+O pipeline usa `logs-tail` para não travar a execução:
+```bash
+# Em caso de falha no health check
+make logs-tail prod  # Mostra últimas 50 linhas e continua
+```
 
 ## 🎯 Próximos Passos
 

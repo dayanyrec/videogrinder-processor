@@ -17,6 +17,8 @@ else
     COMPOSE_CMD = docker compose
 endif
 
+
+
 %:
 	@:
 
@@ -166,33 +168,67 @@ fmt-js: ## Format JavaScript code
 	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx eslint . --ext .js --fix"
 	@echo "✅ JS code formatted"
 
-check: fmt lint test test-js ## Run all quality checks
+check: fmt-check lint test test-js ## Run all quality checks
 
 health: ## Check application health (usage: make health [dev|prod])
 	@echo "🏥 Checking application health..."
 	@echo "🌐 Checking Web Service (port 8080)..."
-	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -f http://host.docker.internal:8080/health || echo '❌ Web Service failed'"
+	@if $(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -s -f http://$(WEB_SERVICE):8080/health" > /dev/null 2>&1; then \
+		echo "✅ Web Service: healthy"; \
+	else \
+		echo "❌ Web Service: failed"; \
+		echo "💡 Dica: rode 'make logs-tail' para ver os logs."; \
+		exit 1; \
+	fi
 	@echo "🔌 Checking API Service (port 8081)..."
-	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -f http://host.docker.internal:8081/health || echo '❌ API Service failed'"
+	@if $(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -s -f http://$(API_SERVICE):8081/health" > /dev/null 2>&1; then \
+		echo "✅ API Service: healthy"; \
+	else \
+		echo "❌ API Service: failed"; \
+		echo "💡 Dica: rode 'make logs-tail' para ver os logs."; \
+		exit 1; \
+	fi
 	@echo "⚙️  Checking Processor Service (port 8082)..."
-	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -f http://host.docker.internal:8082/health || echo '❌ Processor Service failed'"
-	@echo "✅ Health check completed!"
+	@if $(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -s -f http://$(PROCESSOR_SERVICE):8082/health" > /dev/null 2>&1; then \
+		echo "✅ Processor Service: healthy"; \
+	else \
+		echo "❌ Processor Service: failed"; \
+		echo "💡 Dica: rode 'make logs-tail' para ver os logs."; \
+		exit 1; \
+	fi
+	@echo "✅ All services are healthy!"
 
 logs: ## View all services logs (usage: make logs [dev|prod])
 	@echo "📋 Showing all services logs..."
 	$(COMPOSE_CMD) logs -f $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
 
+logs-tail: ## Show last 50 lines of all services logs (usage: make logs-tail [dev|prod])
+	@echo "📋 Showing last 50 lines of all services logs..."
+	$(COMPOSE_CMD) logs --tail=50 $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+
 logs-web: ## View Web service logs (usage: make logs-web [dev|prod])
 	@echo "📋 Showing Web service logs..."
 	$(COMPOSE_CMD) logs -f $(WEB_SERVICE)
+
+logs-web-tail: ## Show last 30 lines of Web service logs (usage: make logs-web-tail [dev|prod])
+	@echo "📋 Showing last 30 lines of Web service logs..."
+	$(COMPOSE_CMD) logs --tail=30 $(WEB_SERVICE)
 
 logs-api: ## View API service logs (usage: make logs-api [dev|prod])
 	@echo "📋 Showing API service logs..."
 	$(COMPOSE_CMD) logs -f $(API_SERVICE)
 
+logs-api-tail: ## Show last 30 lines of API service logs (usage: make logs-api-tail [dev|prod])
+	@echo "📋 Showing last 30 lines of API service logs..."
+	$(COMPOSE_CMD) logs --tail=30 $(API_SERVICE)
+
 logs-processor: ## View processor service logs (usage: make logs-processor [dev|prod])
 	@echo "📋 Showing processor service logs..."
 	$(COMPOSE_CMD) logs -f $(PROCESSOR_SERVICE)
+
+logs-processor-tail: ## Show last 30 lines of processor service logs (usage: make logs-processor-tail [dev|prod])
+	@echo "📋 Showing last 30 lines of processor service logs..."
+	$(COMPOSE_CMD) logs --tail=30 $(PROCESSOR_SERVICE)
 
 down: ## Stop services (usage: make down [dev|prod|all])
 	@echo "🐳 Stopping $(ENV) services..."

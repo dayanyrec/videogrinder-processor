@@ -73,15 +73,12 @@ jobs:
 
     - name: 🚀 Step 5 - Health Check Services
       run: |
-        echo "🚀 Starting all services..."
         make run prod &
-
-        echo "⏳ Waiting for services to be ready..."
-        timeout 60s bash -c 'until make health; do sleep 2; done'
-
-        echo "✅ All services are healthy!"
-        echo "📋 Showing service logs..."
-        make logs prod
-
-        echo "🧹 Cleaning up..."
+        sleep 5
+        if ! timeout 60s bash -c 'until make health; do sleep 2; done'; then
+          echo "❌ Health check failed. Showing service logs..."
+          make logs-tail prod
+          make down prod
+          exit 1
+        fi
         make down prod

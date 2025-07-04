@@ -24,8 +24,6 @@ RUN mkdir -p uploads outputs temp
 
 EXPOSE 8080
 
-CMD ["air", "-c", ".air.toml"]
-
 FROM golang:1.21-alpine AS builder
 
 RUN apk add --no-cache git ca-certificates tzdata

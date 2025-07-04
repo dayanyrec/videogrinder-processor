@@ -27,7 +27,7 @@ README.md
 .github/
 
 # Development configuration
-.air.toml
+
 .eslintrc.js
 .editorconfig
 .golangci.yml

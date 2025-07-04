@@ -411,6 +411,7 @@ exclude_dir = [
 
 ### Testes por Serviço
 ```bash
+make test-web         # Testes do Web (1 teste)
 make test-api         # Testes da API (14 testes)
 make test-processor   # Testes do Processor (6 testes)
 make test-services    # Testes de lógica de negócio (8 testes)
@@ -490,7 +491,7 @@ make run-processor    # Apenas Processor (desenvolvimento backend)
 ### Monitoramento
 ```bash
 curl http://localhost:8080/health         # Web health
-curl http://localhost:8081/api/v1/videos  # API health
+curl http://localhost:8081/health         # API health
 curl http://localhost:8082/health         # Processor health
 ```
 
@@ -534,14 +535,7 @@ videogrinder-processor/
 │   ├── cypress.config.js   # Cypress config
 │   └── package.json        # Node.js dependencies
 ├── internal/               # Shared Go packages
-│   ├── api/                # API handlers
-│   ├── processor/          # Processor handlers
-│   ├── web/                # Web handlers
-│   ├── clients/            # HTTP clients
-│   ├── services/           # Business logic
-│   ├── config/             # Configuration
-│   ├── models/             # Data models
-│   └── utils/              # Utilities
+│   └── config/             # Base configuration utilities
 ├── docker-compose.yml      # Multi-service orchestration
 ├── Dockerfile              # Container definition
 ├── Makefile               # Build automation

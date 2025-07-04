@@ -30,23 +30,30 @@ Esta plataforma permite que os usuários façam upload de vídeos através de um
 
 ## 🏗️ Arquitetura Multi-Service
 
-O VideoGrinder implementa uma **arquitetura HTTP decoupling** com dois serviços independentes:
+O VideoGrinder implementa uma **arquitetura HTTP decoupling** com três serviços independentes:
 
-### 🎯 API Service (Porta 8080)
-- **Responsabilidade**: Interface web, API REST, gerenciamento de arquivos
-- **Endpoints**: `/` (web), `/api/v1/videos` (CRUD completo), `/health`
+### 🌐 Web Service (Porta 8080)
+- **Responsabilidade**: Interface web, arquivos estáticos, frontend
+- **Endpoints**: `/` (página principal), `/static/*` (arquivos estáticos), `/health`
+- **Tecnologia**: Go + Gin + Static File Serving
+- **Executable**: `web/cmd/main.go`
+
+### 🎯 API Service (Porta 8081)
+- **Responsabilidade**: API REST, gerenciamento de arquivos, comunicação com Processor
+- **Endpoints**: `/api/v1/videos` (CRUD completo), `/health`
 - **Comunicação**: HTTP client para Processor Service
 - **Tecnologia**: Go + Gin + HTTP Client
-- **Executable**: `cmd/api/main.go`
+- **Executable**: `api/cmd/main.go`
 
 ### ⚙️ Processor Service (Porta 8082)
 - **Responsabilidade**: Processamento de vídeos, extração de frames
 - **Endpoints**: `/process` (processamento), `/health` (status)
 - **Tecnologia**: Go + Gin + FFmpeg
 - **Isolamento**: Serviço independente e escalável  
-- **Executable**: `cmd/processor/main.go`
+- **Executable**: `processor/cmd/main.go`
 
 ### 🔗 Comunicação
+- **Web → API**: Frontend JavaScript via AJAX/REST
 - **API → Processor**: HTTP requests via client dedicado
 - **Health Checks**: Verificação automática de disponibilidade
 - **Timeout**: 5 minutos para processamento de vídeos
@@ -54,9 +61,10 @@ O VideoGrinder implementa uma **arquitetura HTTP decoupling** com dois serviços
 
 ### 📊 Benefícios
 - ✅ **Escalabilidade**: Processor pode ter múltiplas instâncias
-- ✅ **Isolamento**: Falhas em um serviço não afetam o outro
+- ✅ **Isolamento**: Falhas em um serviço não afetam os outros
 - ✅ **Manutenibilidade**: Desenvolvimento e deploy independentes
 - ✅ **Testabilidade**: Testes isolados por serviço
+- ✅ **Separação Frontend/Backend**: Interface totalmente desacoplada
 - ✅ **Microservices Ready**: Preparado para Kubernetes
 
 ## 🏛️ Tech Mandates
@@ -102,14 +110,16 @@ http://localhost:8080    # Interface web + API REST
 
 **Multi-Service Architecture:**
 ```bash
-make run          # Executar ambos os serviços (API + Processor)
+make run          # Executar todos os serviços (Web + API + Processor)
+make run-web      # Executar apenas o serviço Web
 make run-api      # Executar apenas o serviço API
 make run-processor # Executar apenas o serviço Processor
 ```
 
 **Testing:**
 ```bash
-make test         # Executar todos os testes Go (API + Processor)
+make test         # Executar todos os testes Go (Web + API + Processor)
+make test-web     # Executar apenas testes do serviço Web
 make test-api     # Executar apenas testes do serviço API
 make test-processor # Executar apenas testes do serviço Processor
 make test-js      # Executar testes JavaScript
@@ -118,7 +128,8 @@ make test-e2e     # Executar testes end-to-end
 
 **Operations:**
 ```bash
-make logs         # Ver logs de ambos os serviços
+make logs         # Ver logs de todos os serviços
+make logs-web     # Ver logs apenas do serviço Web
 make logs-api     # Ver logs apenas do serviço API
 make logs-processor # Ver logs apenas do serviço Processor
 make down         # Parar todos os serviços
@@ -131,9 +142,10 @@ Para contribuir com o projeto (seguindo nossos [Tech Mandates](./docs/tech-manda
 
 ```bash
 # 1. Executar aplicação com hot reload (auto-build)
-make run      # Executar API + Processor services
+make run      # Executar Web + API + Processor services
 
 # 2. Executar testes específicos durante desenvolvimento
+make test-web        # Testar apenas Web service
 make test-api        # Testar apenas API service
 make test-processor  # Testar apenas Processor service
 make test           # Testar todos os serviços
@@ -148,8 +160,13 @@ make down
 ### 🧪 Exemplos de Teste por Serviço
 
 ```bash
+# Testar desenvolvimento de Web
+make test-web        # Testes unitários do Web
+make run-web         # Executar apenas Web service
+make logs-web        # Ver logs apenas do Web
+
 # Testar desenvolvimento de API
-make test-api         # Testes unitários da API
+make test-api        # Testes unitários da API
 make run-api         # Executar apenas API service
 make logs-api        # Ver logs apenas da API
 
@@ -159,9 +176,9 @@ make run-processor   # Executar apenas Processor service
 make logs-processor  # Ver logs apenas do Processor
 
 # Testar integração completa
-make test           # Todos os testes (API + Processor + Services)
-make run            # Ambos os serviços
-make logs           # Logs de ambos os serviços
+make test           # Todos os testes (Web + API + Processor + Services)
+make run            # Todos os serviços
+make logs           # Logs de todos os serviços
 ```
 
 ## 📖 Como Usar
@@ -186,43 +203,40 @@ make logs           # Logs de ambos os serviços
 
 ```
 videogrinder-processor/
-├── cmd/                 # Aplicações executáveis
-│   ├── api/             # API Service
-│   │   └── main.go      # Aplicação da API
-│   ├── processor/       # Processor Service
-│   │   └── main.go      # Aplicação do Processor
-│   └── web/             # Web Service (opcional)
-│       └── main.go      # Aplicação web standalone
-├── internal/            # Código interno (não exportado)
-│   ├── api/             # API Service handlers
-│   │   ├── handlers.go  # Handlers HTTP da API
-│   │   └── handlers_test.go # Testes da API
-│   ├── processor/       # Processor Service handlers
-│   │   ├── handlers.go  # Handlers HTTP do Processor
-│   │   └── handlers_test.go # Testes do Processor
-│   ├── clients/         # HTTP clients
-│   │   └── processor.go # Cliente HTTP para Processor
-│   ├── services/        # Lógica de negócio
-│   │   ├── video.go     # Serviço de processamento de vídeo
-│   │   └── video_test.go # Testes do serviço
-│   ├── config/          # Configurações
-│   │   └── config.go    # Estruturas de configuração
-│   ├── models/          # Modelos de dados
-│   │   └── types.go     # Tipos e estruturas
-│   ├── utils/           # Utilitários
-│   │   ├── validation.go # Validações de segurança
-│   │   └── validation_test.go # Testes de validação
-│   └── web/             # Web handlers (frontend)
-│       └── handlers.go  # Handlers para páginas web
-├── web/                 # Web Service (frontend)
+├── api/                 # API Service (Porta 8081)
+│   ├── cmd/main.go      # Aplicação da API
+│   └── internal/        # Código interno da API
+│       ├── handlers/    # Handlers HTTP da API
+│       ├── clients/     # Cliente HTTP para Processor
+│       ├── config/      # Configurações da API
+│       └── models/      # Modelos de dados da API
+├── processor/           # Processor Service (Porta 8082)
+│   ├── cmd/main.go      # Aplicação do Processor
+│   └── internal/        # Código interno do Processor
+│       ├── handlers/    # Handlers HTTP do Processor
+│       ├── services/    # Lógica de processamento de vídeo
+│       ├── config/      # Configurações do Processor
+│       ├── models/      # Modelos de dados do Processor
+│       └── utils/       # Utilitários e validações
+├── web/                 # Web Service (Porta 8080)
+│   ├── cmd/main.go      # Aplicação do Web
+│   ├── internal/        # Código interno do Web
+│   │   ├── handlers/    # Handlers HTTP do Web
+│   │   └── config/      # Configurações do Web
 │   ├── static/          # Arquivos estáticos (CSS, JS, HTML)
+│   │   ├── css/styles.css # Estilos CSS
+│   │   ├── index.html   # Página principal
+│   │   └── js/          # JavaScript modules
 │   ├── tests/           # Testes JavaScript
 │   ├── cypress/         # Testes end-to-end
-│   ├── .eslintrc.js     # Configuração ESLint (frontend)
+│   ├── .eslintrc.js     # Configuração ESLint
 │   ├── cypress.config.js # Configuração do Cypress
 │   └── package.json     # Dependências Node.js
+├── internal/            # Código compartilhado
+│   └── config/          # Configurações base compartilhadas
 ├── docs/               # Documentação do projeto
 │   ├── roadmap.md      # Roadmap de evolução
+│   ├── architecture.md # Arquitetura detalhada
 │   └── tech-mandates.md # Diretrizes técnicas obrigatórias
 ├── uploads/            # Vídeos enviados (temporário)
 ├── outputs/            # Arquivos ZIP gerados
@@ -237,22 +251,25 @@ videogrinder-processor/
 
 ### Ambiente Multi-Service
 ```bash
-# Executar ambos os serviços
-make run      # API (8080) + Processor (8082) em desenvolvimento
-make run prod # API (8080) + Processor (8082) em produção
+# Executar todos os serviços
+make run      # Web (8080) + API (8081) + Processor (8082) em desenvolvimento
+make run prod # Web (8080) + API (8081) + Processor (8082) em produção
 
 # Executar serviços individualmente
-make run-api      # Apenas API service na porta 8080
+make run-web      # Apenas Web service na porta 8080
+make run-api      # Apenas API service na porta 8081
 make run-processor # Apenas Processor service na porta 8082
 
 # Monitoramento
-make logs         # Logs de ambos os serviços
+make logs         # Logs de todos os serviços
+make logs-web     # Logs apenas do Web
 make logs-api     # Logs apenas da API
 make logs-processor # Logs apenas do Processor
 ```
 
 ### Configurações Atuais
-- **API Service**: Porta 8080 (interface externa)
+- **Web Service**: Porta 8080 (interface web)
+- **API Service**: Porta 8081 (API REST)
 - **Processor Service**: Porta 8082 (processamento interno)
 - **Comunicação**: HTTP entre serviços com timeout de 5 minutos
 - **Taxa de extração**: 1 frame por segundo (fps=1)  
@@ -260,10 +277,18 @@ make logs-processor # Logs apenas do Processor
 
 ### Variáveis de Ambiente
 ```bash
-# Configuração do Processor Service
-export PROCESSOR_URL=http://localhost:8082  # URL do Processor Service
+# Web Service (Porta 8080)
+export PORT=8080
+export API_URL=http://localhost:8081
 
-# Configuração de diretórios (opcional)
+# API Service (Porta 8081)
+export PORT=8081
+export PROCESSOR_URL=http://localhost:8082
+
+# Processor Service (Porta 8082)
+export PORT=8082
+
+# Configuração de diretórios (compartilhada)
 export UPLOADS_DIR=./uploads
 export OUTPUTS_DIR=./outputs
 export TEMP_DIR=./temp
@@ -308,16 +333,21 @@ make run
 
 ### Portas em uso
 ```bash
-# Porta 8080 (API) ou 8082 (Processor) em uso
+# Portas 8080 (Web), 8081 (API) ou 8082 (Processor) em uso
 make down     # Parar todos os serviços do VideoGrinder
 
 # Verificar processos nas portas via Docker (se necessário)
-docker-compose --profile tools run --rm videogrinder-devtools sh -c "netstat -tulpn | grep :8080"  # API
+docker-compose --profile tools run --rm videogrinder-devtools sh -c "netstat -tulpn | grep :8080"  # Web
+docker-compose --profile tools run --rm videogrinder-devtools sh -c "netstat -tulpn | grep :8081"  # API
 docker-compose --profile tools run --rm videogrinder-devtools sh -c "netstat -tulpn | grep :8082"  # Processor
 ```
 
 ### Problemas com serviços individuais
 ```bash
+# Testar apenas Web
+make test-web
+make run-web
+
 # Testar apenas API
 make test-api
 make run-api
@@ -327,8 +357,9 @@ make test-processor
 make run-processor
 
 # Verificar saúde dos serviços via Docker
+docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8080/health"  # Web
 docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8081/health"  # API
-docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8082/health"         # Processor
+docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8082/health"  # Processor
 ```
 
 ### Erro de permissão em diretórios
@@ -357,16 +388,17 @@ make setup          # Recriar ambiente
 - O processamento é sequencial (um vídeo por vez por instância de Processor)
 - Arquivos muito grandes podem consumir bastante espaço em disco
 - O tempo de processamento é proporcional ao tamanho e duração do vídeo
-- Interface web básica integrada na API (será separada nas próximas fases)
 - Comunicação HTTP entre serviços adiciona latência mínima
+- Armazenamento local (será migrado para S3 na Fase 3)
 
 ## 🎯 Melhorias com Multi-Service Architecture
 
 - ✅ **Escalabilidade**: Múltiplas instâncias do Processor podem processar vídeos simultaneamente
-- ✅ **Isolamento**: Falhas no processamento não afetam a API
+- ✅ **Isolamento**: Falhas em um serviço não afetam os outros
 - ✅ **Manutenção**: Serviços podem ser atualizados independentemente
 - ✅ **Monitoramento**: Logs e métricas separados por serviço
 - ✅ **Testabilidade**: Testes unitários isolados por responsabilidade
+- ✅ **Separação Frontend/Backend**: Interface totalmente desacoplada
 
 ## 🗺️ Roadmap de Evolução
 

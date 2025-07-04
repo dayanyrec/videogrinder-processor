@@ -82,3 +82,35 @@ jobs:
           exit 1
         fi
         make down prod
+
+  pipeline-summary:
+    name: 📋 Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [quality-checks, build-and-health]
+    if: always()
+
+    steps:
+    - name: 📊 Pipeline Summary
+      run: |
+        echo "## 🔍 VideoGrinder CI/CD Pipeline Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        if [ "${{ needs.quality-checks.result }}" = "success" ]; then
+          echo "✅ **Code Quality Checks**: PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "  - Step 1: Code formatting ✅" >> $GITHUB_STEP_SUMMARY
+          echo "  - Step 2: Linting (Go + JS) ✅" >> $GITHUB_STEP_SUMMARY
+          echo "  - Step 3: Unit tests ✅" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Code Quality Checks**: FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        if [ "${{ needs.build-and-health.result }}" = "success" ]; then
+          echo "✅ **Build & Health Check**: PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "  - Step 4: Production build ✅" >> $GITHUB_STEP_SUMMARY
+          echo "  - Step 5: Health check ✅" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Build & Health Check**: FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "🚀 **Pipeline Status**: ${{ needs.quality-checks.result == 'success' && needs.build-and-health.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY

@@ -27,9 +27,40 @@ Pipeline de CI/CD **simplificado e focado** no VideoGrinder com **5 passos essen
 🏗️ Build & Health Check (2-3 min)
 ├── Step 4: make setup prod (build)
 └── Step 5: make health (verificação completa)
+
+📋 Pipeline Summary
+└── Resumo dos resultados
 ```
 
 **Tempo total**: ~4-6 minutos
+
+## 🔍 Workflow de Pull Request
+
+**Arquivo**: `.github/workflows/pr-validation.yml`
+
+### Jobs do Pipeline PR
+
+```
+🔍 PR Validation (5 Steps) (4-6 min)
+├── Step 1: make fmt-check (formatação)
+├── Step 2: make lint (qualidade)
+├── Step 3: make test + make test-js (testes)
+├── Step 4: make setup prod (build)
+└── Step 5: make health (verificação completa)
+
+📋 PR Summary
+└── Resumo dos resultados
+```
+
+**Tempo total**: ~4-6 minutos
+
+### Benefícios da Simplificação PR
+
+- **Mesmos 5 passos**: Consistência com pipeline principal
+- **Mesmo summary**: Resumo automático em ambas as pipelines
+- **Um job apenas**: Sem complexidade desnecessária
+- **Feedback claro**: Resumo automático no PR
+- **Cancelamento inteligente**: Novos commits cancelam execuções anteriores
 
 ## 🔧 Comandos Principais
 
@@ -165,6 +196,27 @@ make logs-tail prod  # Mostra últimas 50 linhas e continua
 - [ ] **Deploy**: Adicionar deploy automático para produção
 - [ ] **Monitoramento**: Health checks em produção
 
----
+### **📋 Estrutura Final**
 
-**Estado atual**: Pipeline **otimizado e estável** - 5 steps essenciais funcionando perfeitamente.
+```
+🔍 Pipeline Principal (ci-cd.yml)
+├── 🔍 Code Quality Checks (5 steps)
+├── 🏗️ Build & Health Check (5 steps)
+└── 📋 Pipeline Summary
+
+🔍 Pipeline PR (pr-validation.yml)
+├── 🔍 PR Validation (5 steps)
+└── 📋 PR Summary
+```
+
+### **🎯 Resultado Final**
+
+Ambas as pipelines agora seguem a **mesma filosofia dos 5 passos essenciais** e incluem **summary automático**:
+1. **✨ Formatação** - `make fmt-check`
+2. **🔍 Lint** - `make lint`
+3. **🧪 Testes** - `make test` + `make test-js`
+4. **🏗️ Build** - `make setup prod`
+5. **🚀 Health** - `make health`
+6. **📋 Summary** - Resumo automático dos resultados
+
+**Estado atual**: Pipelines **simplificadas, consistentes e otimizadas** com feedback completo! 🚀

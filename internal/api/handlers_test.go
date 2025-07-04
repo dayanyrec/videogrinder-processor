@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -12,12 +13,37 @@ import (
 
 	"video-processor/internal/config"
 	"video-processor/internal/models"
-	"video-processor/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// MockProcessorClient for testing
+type MockProcessorClient struct {
+	healthCheckFunc  func() error
+	processVideoFunc func(string, io.Reader) (models.ProcessingResult, error)
+}
+
+func (m *MockProcessorClient) HealthCheck() error {
+	if m.healthCheckFunc != nil {
+		return m.healthCheckFunc()
+	}
+	return nil
+}
+
+func (m *MockProcessorClient) ProcessVideo(filename string, fileReader io.Reader) (models.ProcessingResult, error) {
+	if m.processVideoFunc != nil {
+		return m.processVideoFunc(filename, fileReader)
+	}
+	return models.ProcessingResult{
+		Success:    true,
+		Message:    "Processamento concluído! 5 frames extraídos.",
+		ZipPath:    "frames_test.zip",
+		FrameCount: 5,
+		Images:     []string{"frame_001.png", "frame_002.png"},
+	}, nil
+}
 
 func setupTestHandlers() (handlers *APIHandlers, cleanup func()) {
 	tempDir := filepath.Join(os.TempDir(), "apihandlers_test")
@@ -30,13 +56,16 @@ func setupTestHandlers() (handlers *APIHandlers, cleanup func()) {
 	os.MkdirAll(tempVideoDir, 0750)
 
 	cfg := &config.Config{
-		UploadsDir: uploadsDir,
-		OutputsDir: outputsDir,
-		TempDir:    tempVideoDir,
+		UploadsDir:   uploadsDir,
+		OutputsDir:   outputsDir,
+		TempDir:      tempVideoDir,
+		ProcessorURL: "http://localhost:8081",
 	}
 
-	videoService := services.NewVideoService(cfg)
-	handlers = NewAPIHandlers(videoService, cfg)
+	handlers = &APIHandlers{
+		processorClient: &MockProcessorClient{},
+		config:          cfg,
+	}
 
 	cleanup = func() {
 		os.RemoveAll(tempDir)
@@ -47,16 +76,16 @@ func setupTestHandlers() (handlers *APIHandlers, cleanup func()) {
 
 func TestNewAPIHandlers_ShouldInitializeHandlersWithCorrectDependencies(t *testing.T) {
 	cfg := &config.Config{
-		UploadsDir: "uploads",
-		OutputsDir: "outputs",
-		TempDir:    "temp",
+		UploadsDir:   "uploads",
+		OutputsDir:   "outputs",
+		TempDir:      "temp",
+		ProcessorURL: "http://localhost:8081",
 	}
-	videoService := services.NewVideoService(cfg)
 
-	handlers := NewAPIHandlers(videoService, cfg)
+	handlers := NewAPIHandlers(cfg)
 
 	assert.NotNil(t, handlers)
-	assert.Equal(t, videoService, handlers.videoService)
+	assert.NotNil(t, handlers.processorClient)
 	assert.Equal(t, cfg, handlers.config)
 }
 
@@ -112,9 +141,109 @@ func TestCreateVideo_ShouldReturnBadRequestWhenNoFileIsProvided(t *testing.T) {
 	assert.Contains(t, response.Message, "Erro ao receber arquivo")
 }
 
-func TestCreateVideo_ShouldReturnUnprocessableEntityWhenVideoProcessingFails(t *testing.T) {
+func TestCreateVideo_ShouldReturnServiceUnavailableWhenProcessorIsDown(t *testing.T) {
 	handlers, cleanup := setupTestHandlers()
 	defer cleanup()
+
+	// Mock processor as unavailable
+	mockClient := &MockProcessorClient{
+		healthCheckFunc: func() error {
+			return assert.AnError
+		},
+	}
+	handlers.processorClient = mockClient
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("video", "test.mp4")
+	require.NoError(t, err)
+	part.Write([]byte("fake video content"))
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/api/v1/videos", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	c.Request = req
+
+	handlers.CreateVideo(c)
+
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+
+	var response models.ProcessingResult
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.False(t, response.Success)
+	assert.Contains(t, response.Message, "Serviço de processamento indisponível")
+}
+
+func TestCreateVideo_ShouldReturnCreatedWhenVideoProcessingSucceeds(t *testing.T) {
+	handlers, cleanup := setupTestHandlers()
+	defer cleanup()
+
+	// Mock successful processing
+	mockClient := &MockProcessorClient{
+		healthCheckFunc: func() error {
+			return nil
+		},
+		processVideoFunc: func(filename string, fileReader io.Reader) (models.ProcessingResult, error) {
+			return models.ProcessingResult{
+				Success:    true,
+				Message:    "Processamento concluído! 5 frames extraídos.",
+				ZipPath:    "frames_test.zip",
+				FrameCount: 5,
+				Images:     []string{"frame_001.png", "frame_002.png"},
+			}, nil
+		},
+	}
+	handlers.processorClient = mockClient
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("video", "test.mp4")
+	require.NoError(t, err)
+	part.Write([]byte("fake video content"))
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/api/v1/videos", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	c.Request = req
+
+	handlers.CreateVideo(c)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var response models.ProcessingResult
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.True(t, response.Success)
+	assert.Equal(t, "frames_test.zip", response.ZipPath)
+	assert.Equal(t, 5, response.FrameCount)
+}
+
+func TestCreateVideo_ShouldReturnUnprocessableEntityWhenProcessingFails(t *testing.T) {
+	handlers, cleanup := setupTestHandlers()
+	defer cleanup()
+
+	// Mock failed processing
+	mockClient := &MockProcessorClient{
+		healthCheckFunc: func() error {
+			return nil
+		},
+		processVideoFunc: func(filename string, fileReader io.Reader) (models.ProcessingResult, error) {
+			return models.ProcessingResult{
+				Success: false,
+				Message: "Erro ao processar vídeo: formato inválido",
+			}, nil
+		},
+	}
+	handlers.processorClient = mockClient
 
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
@@ -139,7 +268,7 @@ func TestCreateVideo_ShouldReturnUnprocessableEntityWhenVideoProcessingFails(t *
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.False(t, response.Success)
-	assert.NotEmpty(t, response.Message)
+	assert.Contains(t, response.Message, "formato inválido")
 }
 
 func TestGetVideoDownload_ShouldReturnNotFoundWhenRequestedFileDoesNotExist(t *testing.T) {

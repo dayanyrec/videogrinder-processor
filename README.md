@@ -28,6 +28,35 @@ Esta plataforma permite que os usuários façam upload de vídeos através de um
 - **Containerização**: Docker
 - **Arquivos**: Manipulação de ZIP nativo
 
+## 🏗️ Arquitetura Multi-Service
+
+O VideoGrinder implementa uma **arquitetura HTTP decoupling** com dois serviços independentes:
+
+### 🎯 API Service (Porta 8080)
+- **Responsabilidade**: Interface externa, gerenciamento de arquivos
+- **Endpoints**: `/api/v1/videos` (CRUD completo)
+- **Comunicação**: HTTP client para Processor Service
+- **Tecnologia**: Go + Gin + HTTP Client
+
+### ⚙️ Processor Service (Porta 8081)
+- **Responsabilidade**: Processamento de vídeos, extração de frames
+- **Endpoints**: `/process` (processamento), `/health` (status)
+- **Tecnologia**: Go + Gin + FFmpeg
+- **Isolamento**: Serviço independente e escalável
+
+### 🔗 Comunicação
+- **API → Processor**: HTTP requests via client dedicado
+- **Health Checks**: Verificação automática de disponibilidade
+- **Timeout**: 5 minutos para processamento de vídeos
+- **Error Handling**: Tratamento robusto de falhas de comunicação
+
+### 📊 Benefícios
+- ✅ **Escalabilidade**: Processor pode ter múltiplas instâncias
+- ✅ **Isolamento**: Falhas em um serviço não afetam o outro
+- ✅ **Manutenibilidade**: Desenvolvimento e deploy independentes
+- ✅ **Testabilidade**: Testes isolados por serviço
+- ✅ **Microservices Ready**: Preparado para Kubernetes
+
 ## 🏛️ Tech Mandates
 
 O VideoGrinder segue um conjunto rigoroso de **[Tech Mandates](./docs/tech-mandates.md)** que definem nossa arquitetura e práticas de desenvolvimento:
@@ -58,8 +87,8 @@ cd videogrinder-processor
 
 2. **Execute a aplicação (auto-build):**
 ```bash
-make run      # Desenvolvimento com hot reload
-make run prod # Produção (para testes)
+make run      # API + Processor services (desenvolvimento)
+make run prod # API + Processor services (produção)
 ```
 
 3. **Acesse no navegador:**
@@ -69,13 +98,29 @@ http://localhost:8080
 
 ### 🛠️ Comandos Essenciais
 
+**Multi-Service Architecture:**
 ```bash
-make run          # Executar aplicação (dev com hot reload)
-make run prod     # Executar em modo produção
-make test         # Executar testes
-make lint         # Verificar qualidade do código
-make logs         # Ver logs da aplicação
-make down         # Parar serviços
+make run          # Executar ambos os serviços (API + Processor)
+make run-api      # Executar apenas o serviço API
+make run-processor # Executar apenas o serviço Processor
+make run-legacy   # Executar serviço monolítico (compatibilidade)
+```
+
+**Testing:**
+```bash
+make test         # Executar todos os testes Go (API + Processor)
+make test-api     # Executar apenas testes do serviço API
+make test-processor # Executar apenas testes do serviço Processor
+make test-js      # Executar testes JavaScript
+make test-e2e     # Executar testes end-to-end
+```
+
+**Operations:**
+```bash
+make logs         # Ver logs de ambos os serviços
+make logs-api     # Ver logs apenas do serviço API
+make logs-processor # Ver logs apenas do serviço Processor
+make down         # Parar todos os serviços
 make help         # Ver todos os comandos disponíveis
 ```
 
@@ -85,13 +130,37 @@ Para contribuir com o projeto (seguindo nossos [Tech Mandates](./docs/tech-manda
 
 ```bash
 # 1. Executar aplicação com hot reload (auto-build)
-make run
+make run      # Executar API + Processor services
 
-# 2. Executar testes e verificações antes de commit
-make check    # Executa: format + lint + test
+# 2. Executar testes específicos durante desenvolvimento
+make test-api        # Testar apenas API service
+make test-processor  # Testar apenas Processor service
+make test           # Testar todos os serviços
 
-# 3. Parar serviços quando terminar
+# 3. Executar verificações antes de commit
+make check    # Executa: format + lint + test (todos os serviços)
+
+# 4. Parar serviços quando terminar
 make down
+```
+
+### 🧪 Exemplos de Teste por Serviço
+
+```bash
+# Testar desenvolvimento de API
+make test-api         # Testes unitários da API
+make run-api         # Executar apenas API service
+make logs-api        # Ver logs apenas da API
+
+# Testar desenvolvimento de Processor
+make test-processor  # Testes unitários do Processor
+make run-processor   # Executar apenas Processor service
+make logs-processor  # Ver logs apenas do Processor
+
+# Testar integração completa
+make test           # Todos os testes (API + Processor + Services)
+make run            # Ambos os serviços
+make logs           # Logs de ambos os serviços
 ```
 
 ## 📖 Como Usar
@@ -116,34 +185,83 @@ make down
 
 ```
 videogrinder-processor/
-├── main.go              # Aplicação principal
-├── go.mod              # Dependências do Go
-├── go.sum              # Checksums das dependências
-├── Dockerfile          # Configuração do Docker
+├── main.go              # API Service principal
+├── cmd/                 # Aplicações executáveis
+│   └── processor/       # Processor Service
+│       └── main.go      # Aplicação do Processor
+├── internal/            # Código interno (não exportado)
+│   ├── api/             # API Service handlers
+│   │   ├── handlers.go  # Handlers HTTP da API
+│   │   └── handlers_test.go # Testes da API
+│   ├── processor/       # Processor Service handlers
+│   │   ├── handlers.go  # Handlers HTTP do Processor
+│   │   └── handlers_test.go # Testes do Processor
+│   ├── clients/         # HTTP clients
+│   │   └── processor.go # Cliente HTTP para Processor
+│   ├── services/        # Lógica de negócio
+│   │   ├── video.go     # Serviço de processamento de vídeo
+│   │   └── video_test.go # Testes do serviço
+│   ├── config/          # Configurações
+│   │   └── config.go    # Estruturas de configuração
+│   ├── models/          # Modelos de dados
+│   │   └── types.go     # Tipos e estruturas
+│   ├── utils/           # Utilitários
+│   │   ├── validation.go # Validações de segurança
+│   │   └── validation_test.go # Testes de validação
+│   └── web/             # Web handlers (frontend)
+│       └── handlers.go  # Handlers para páginas web
+├── static/              # Arquivos estáticos (CSS, JS, HTML)
+├── tests/               # Testes JavaScript
+├── cypress/             # Testes end-to-end
 ├── docs/               # Documentação do projeto
 │   ├── roadmap.md      # Roadmap de evolução
 │   └── tech-mandates.md # Diretrizes técnicas obrigatórias
 ├── uploads/            # Vídeos enviados (temporário)
 ├── outputs/            # Arquivos ZIP gerados
 ├── temp/               # Arquivos temporários durante processamento
-└── README.md           # Este arquivo
+├── docker-compose.yml  # Configuração multi-service
+├── Dockerfile          # Configuração do Docker
+├── Makefile           # Comandos de automação
+└── README.md          # Este arquivo
 ```
 
 ## 🔧 Configuração
 
-### Ambiente de Desenvolvimento
+### Ambiente Multi-Service
 ```bash
-make run      # Executar com hot reload (auto-build)
-make run prod # Executar em modo produção
-make logs     # Ver logs da aplicação
+# Executar ambos os serviços
+make run      # API (8080) + Processor (8081) em desenvolvimento
+make run prod # API (8080) + Processor (8081) em produção
+
+# Executar serviços individualmente
+make run-api      # Apenas API service na porta 8080
+make run-processor # Apenas Processor service na porta 8081
+
+# Monitoramento
+make logs         # Logs de ambos os serviços
+make logs-api     # Logs apenas da API
+make logs-processor # Logs apenas do Processor
 ```
 
 ### Configurações Atuais
-- **Porta**: 8080 (configurável via variáveis de ambiente - Fase 1)
+- **API Service**: Porta 8080 (interface externa)
+- **Processor Service**: Porta 8081 (processamento interno)
+- **Comunicação**: HTTP entre serviços com timeout de 5 minutos
 - **Taxa de extração**: 1 frame por segundo (fps=1)  
 - **Formatos suportados**: MP4, AVI, MOV, MKV, WMV, FLV, WebM
 
-> ⚠️ **Nota**: Configurações via variáveis de ambiente serão implementadas na Fase 1.4 conforme nosso [roadmap](./docs/roadmap.md).
+### Variáveis de Ambiente
+```bash
+# Configuração do Processor Service
+export PROCESSOR_URL=http://localhost:8081  # URL do Processor Service
+
+# Configuração de diretórios (opcional)
+export UPLOADS_DIR=./uploads
+export OUTPUTS_DIR=./outputs
+export TEMP_DIR=./temp
+```
+
+> ⚠️ **Nota**: Configurações adicionais via variáveis de ambiente serão implementadas na Fase 1.4 conforme nosso [roadmap](./docs/roadmap.md).
 
 ## 🐛 Solução de Problemas
 
@@ -156,24 +274,58 @@ make run      # Tentar executar novamente
 
 ### Verificar logs da aplicação
 ```bash
-make logs     # Ver logs em tempo real
+make logs           # Ver logs de ambos os serviços
+make logs-api       # Ver logs apenas da API
+make logs-processor # Ver logs apenas do Processor
 ```
 
-### Erro de permissão em diretórios
+### Erro de comunicação entre serviços
 ```bash
-sudo chmod 755 uploads outputs temp
+# Verificar se o Processor está rodando
+curl http://localhost:8081/health
+
+# Verificar se a API consegue acessar o Processor
+make logs-api | grep "processor"
+
+# Reiniciar ambos os serviços
+make down
+make run
 ```
 
 ### Vídeo não é processado
 - Verifique se o formato é suportado
 - Confirme se o arquivo não está corrompido
-- Execute `make logs` para ver erros específicos
+- Execute `make logs-processor` para ver erros específicos do processamento
+- Verifique se o Processor Service está acessível: `curl http://localhost:8081/health`
 
-### Porta 8080 em uso
+### Portas em uso
 ```bash
+# Porta 8080 (API) ou 8081 (Processor) em uso
 make down     # Parar todos os serviços do VideoGrinder
-# Ou termine outros processos na porta:
-lsof -ti:8080 | xargs kill -9
+
+# Verificar processos nas portas
+lsof -ti:8080 | xargs kill -9  # API
+lsof -ti:8081 | xargs kill -9  # Processor
+```
+
+### Problemas com serviços individuais
+```bash
+# Testar apenas API
+make test-api
+make run-api
+
+# Testar apenas Processor
+make test-processor
+make run-processor
+
+# Verificar saúde dos serviços
+curl http://localhost:8080/api/v1/videos  # API
+curl http://localhost:8081/health         # Processor
+```
+
+### Erro de permissão em diretórios
+```bash
+sudo chmod 755 uploads outputs temp
 ```
 
 ### Problemas com Docker
@@ -193,10 +345,19 @@ make setup          # Recriar ambiente
 
 ## ⚠️ Limitações Atuais
 
-- O processamento é sequencial (um vídeo por vez)
+- O processamento é sequencial (um vídeo por vez por instância de Processor)
 - Arquivos muito grandes podem consumir bastante espaço em disco
 - O tempo de processamento é proporcional ao tamanho e duração do vídeo
 - Interface web básica (será melhorada nas próximas fases)
+- Comunicação HTTP entre serviços adiciona latência mínima
+
+## 🎯 Melhorias com Multi-Service Architecture
+
+- ✅ **Escalabilidade**: Múltiplas instâncias do Processor podem processar vídeos simultaneamente
+- ✅ **Isolamento**: Falhas no processamento não afetam a API
+- ✅ **Manutenção**: Serviços podem ser atualizados independentemente
+- ✅ **Monitoramento**: Logs e métricas separados por serviço
+- ✅ **Testabilidade**: Testes unitários isolados por responsabilidade
 
 ## 🗺️ Roadmap de Evolução
 
@@ -212,10 +373,13 @@ Para detalhes completos sobre as fases, cronograma e entregas, consulte nosso **
 ### Próximas Entregas (Fase 1)
 - [x] Setup de linters e boas práticas
 - [x] Melhorar containerização com Docker multistage
+- [x] **HTTP Decoupling**: Arquitetura multi-service implementada (API + Processor)
+- [x] **Testes Unitários**: Cobertura completa para ambos os serviços
+- [x] **Makefile Atualizado**: Comandos para desenvolvimento multi-service
 - [ ] **CRÍTICO**: Corrigir vulnerabilidades de segurança (G304, G204, errcheck)
 - [ ] Adicionar variáveis de ambiente para configuração
 - [ ] Implementar logging estruturado em JSON
-- [ ] Implementar testes unitários e end-to-end
+- [ ] Implementar testes end-to-end
 - [ ] Configurar CI/CD com GitHub Actions
 
 ## 🤝 Contribuição

@@ -6,18 +6,20 @@ import (
 )
 
 type Config struct {
-	Port       string
-	UploadsDir string
-	OutputsDir string
-	TempDir    string
+	Port         string
+	UploadsDir   string
+	OutputsDir   string
+	TempDir      string
+	ProcessorURL string
 }
 
 func New() *Config {
 	return &Config{
-		Port:       getEnv("PORT", "8080"),
-		UploadsDir: getEnv("UPLOADS_DIR", "uploads"),
-		OutputsDir: getEnv("OUTPUTS_DIR", "outputs"),
-		TempDir:    getEnv("TEMP_DIR", "temp"),
+		Port:         getEnv("PORT", "8080"),
+		UploadsDir:   getEnv("UPLOADS_DIR", "uploads"),
+		OutputsDir:   getEnv("OUTPUTS_DIR", "outputs"),
+		TempDir:      getEnv("TEMP_DIR", "temp"),
+		ProcessorURL: getEnv("PROCESSOR_URL", "http://localhost:8081"),
 	}
 }
 

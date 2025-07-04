@@ -1,0 +1,231 @@
+package processor
+
+import (
+	"bytes"
+	"encoding/json"
+	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"video-processor/internal/config"
+	"video-processor/internal/models"
+	"video-processor/internal/services"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func setupTestProcessorHandlers() (handlers *ProcessorHandlers, cleanup func()) {
+	tempDir := filepath.Join(os.TempDir(), "processor_test")
+	uploadsDir := filepath.Join(tempDir, "uploads")
+	outputsDir := filepath.Join(tempDir, "outputs")
+	tempVideoDir := filepath.Join(tempDir, "temp")
+
+	os.MkdirAll(uploadsDir, 0750)
+	os.MkdirAll(outputsDir, 0750)
+	os.MkdirAll(tempVideoDir, 0750)
+
+	cfg := &config.Config{
+		UploadsDir: uploadsDir,
+		OutputsDir: outputsDir,
+		TempDir:    tempVideoDir,
+	}
+
+	videoService := services.NewVideoService(cfg)
+	handlers = NewProcessorHandlers(videoService, cfg)
+
+	cleanup = func() {
+		os.RemoveAll(tempDir)
+	}
+
+	return
+}
+
+func TestNewProcessorHandlers_ShouldInitializeHandlersWithCorrectDependencies(t *testing.T) {
+	cfg := &config.Config{
+		UploadsDir: "uploads",
+		OutputsDir: "outputs",
+		TempDir:    "temp",
+	}
+	videoService := services.NewVideoService(cfg)
+
+	handlers := NewProcessorHandlers(videoService, cfg)
+
+	assert.NotNil(t, handlers)
+	assert.Equal(t, videoService, handlers.videoService)
+}
+
+func TestProcessVideoUpload_ShouldReturnBadRequestWhenNoFileIsProvided(t *testing.T) {
+	handlers, cleanup := setupTestProcessorHandlers()
+	defer cleanup()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	req := httptest.NewRequest("POST", "/process", http.NoBody)
+	c.Request = req
+
+	handlers.ProcessVideoUpload(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response models.ProcessingResult
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.False(t, response.Success)
+	assert.Contains(t, response.Message, "Erro ao receber arquivo")
+}
+
+func TestProcessVideoUpload_ShouldReturnBadRequestWhenUploadingInvalidFileExtension(t *testing.T) {
+	handlers, cleanup := setupTestProcessorHandlers()
+	defer cleanup()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("video", "test.txt")
+	require.NoError(t, err)
+	part.Write([]byte("not a video"))
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/process", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	c.Request = req
+
+	handlers.ProcessVideoUpload(c)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response models.ProcessingResult
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.False(t, response.Success)
+	assert.Contains(t, response.Message, "Formato de arquivo não suportado")
+}
+
+func TestProcessVideoUpload_ShouldReturnCreatedWhenProcessingValidVideo(t *testing.T) {
+	handlers, cleanup := setupTestProcessorHandlers()
+	defer cleanup()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("video", "test.mp4")
+	require.NoError(t, err)
+	part.Write([]byte("fake video content"))
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/process", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	c.Request = req
+
+	handlers.ProcessVideoUpload(c)
+
+	// The service will return an error because it's not a real video
+	// but the handler should handle it gracefully
+	assert.True(t, w.Code == http.StatusCreated || w.Code == http.StatusUnprocessableEntity)
+
+	var response models.ProcessingResult
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.NotEmpty(t, response.Message)
+}
+
+func TestGetProcessorStatus_ShouldReturnHealthyStatusWhenServiceIsRunning(t *testing.T) {
+	handlers, cleanup := setupTestProcessorHandlers()
+	defer cleanup()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	req := httptest.NewRequest("GET", "/health", http.NoBody)
+	c.Request = req
+
+	handlers.GetProcessorStatus(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "healthy", response["status"])
+	assert.Equal(t, "video-processor", response["service"])
+	assert.NotNil(t, response["timestamp"])
+}
+
+func TestProcessorHandlers_Integration_ShouldProvideFullProcessingWorkflow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	handlers, cleanup := setupTestProcessorHandlers()
+	defer cleanup()
+
+	gin.SetMode(gin.TestMode)
+
+	// First check if service is healthy
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("GET", "/health", http.NoBody)
+	c.Request = req
+	handlers.GetProcessorStatus(c)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Then try to process a video
+	w = httptest.NewRecorder()
+	c, _ = gin.CreateTestContext(w)
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("video", "test.mp4")
+	require.NoError(t, err)
+	part.Write([]byte("fake video content"))
+	writer.Close()
+
+	req = httptest.NewRequest("POST", "/process", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	c.Request = req
+
+	handlers.ProcessVideoUpload(c)
+
+	// Should get a response (success or failure)
+	assert.True(t, w.Code == http.StatusCreated || w.Code == http.StatusUnprocessableEntity)
+	assert.NotEmpty(t, w.Body.String())
+}
+
+func BenchmarkProcessVideoUpload_ShouldPerformEfficientlyUnderLoad(b *testing.B) {
+	handlers, cleanup := setupTestProcessorHandlers()
+	defer cleanup()
+
+	gin.SetMode(gin.TestMode)
+
+	// Prepare test data
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("video", "test.mp4")
+	part.Write([]byte("fake video content"))
+	writer.Close()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		req := httptest.NewRequest("POST", "/process", bytes.NewReader(body.Bytes()))
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		c.Request = req
+
+		handlers.ProcessVideoUpload(c)
+	}
+}

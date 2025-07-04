@@ -1,31 +1,28 @@
 package api
 
 import (
-	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
+	"video-processor/internal/clients"
 	"video-processor/internal/config"
 	"video-processor/internal/models"
-	"video-processor/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
 
 type APIHandlers struct {
-	videoService *services.VideoService
-	config       *config.Config
+	processorClient clients.ProcessorClientInterface
+	config          *config.Config
 }
 
-func NewAPIHandlers(videoService *services.VideoService, cfg *config.Config) *APIHandlers {
+func NewAPIHandlers(cfg *config.Config) *APIHandlers {
 	return &APIHandlers{
-		videoService: videoService,
-		config:       cfg,
+		processorClient: clients.NewProcessorClient(cfg.ProcessorURL),
+		config:          cfg,
 	}
 }
 
@@ -52,50 +49,26 @@ func (ah *APIHandlers) CreateVideo(c *gin.Context) {
 		return
 	}
 
-	timestamp := time.Now().Format("20060102_150405")
-	filename := fmt.Sprintf("%s_%s", timestamp, filepath.Base(header.Filename))
-	videoPath := filepath.Join(ah.config.UploadsDir, filename)
-
-	cleanVideoPath := filepath.Clean(videoPath)
-	uploadsDir, _ := filepath.Abs(ah.config.UploadsDir)
-	absVideoPath, _ := filepath.Abs(cleanVideoPath)
-	if !strings.HasPrefix(absVideoPath, uploadsDir+string(filepath.Separator)) {
-		c.JSON(http.StatusBadRequest, models.ProcessingResult{
+	// Check processor health before processing
+	if err := ah.processorClient.HealthCheck(); err != nil {
+		c.JSON(http.StatusServiceUnavailable, models.ProcessingResult{
 			Success: false,
-			Message: "Invalid file path",
+			Message: "Serviço de processamento indisponível: " + err.Error(),
 		})
 		return
 	}
 
-	out, err := os.Create(filepath.Clean(videoPath))
+	// Send file to processor service
+	result, err := ah.processorClient.ProcessVideo(header.Filename, file)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ProcessingResult{
 			Success: false,
-			Message: "Erro ao salvar arquivo: " + err.Error(),
+			Message: "Erro ao processar vídeo: " + err.Error(),
 		})
 		return
 	}
-	defer func() {
-		if err := out.Close(); err != nil {
-			log.Printf("Warning: Failed to close output file: %v", err)
-		}
-	}()
-
-	_, err = io.Copy(out, file)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ProcessingResult{
-			Success: false,
-			Message: "Erro ao salvar arquivo: " + err.Error(),
-		})
-		return
-	}
-
-	result := ah.videoService.ProcessVideo(videoPath, timestamp)
 
 	if result.Success {
-		if err := os.Remove(videoPath); err != nil {
-			log.Printf("Warning: Failed to remove video file %s: %v", videoPath, err)
-		}
 		c.JSON(http.StatusCreated, result)
 	} else {
 		c.JSON(http.StatusUnprocessableEntity, result)

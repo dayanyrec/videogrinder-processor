@@ -7,7 +7,6 @@ import (
 
 	"video-processor/internal/api"
 	"video-processor/internal/config"
-	"video-processor/internal/services"
 	"video-processor/internal/web"
 
 	"github.com/gin-gonic/gin"
@@ -17,8 +16,7 @@ func main() {
 	cfg := config.New()
 	cfg.CreateDirectories()
 
-	videoService := services.NewVideoService(cfg)
-	apiHandlers := api.NewAPIHandlers(videoService, cfg)
+	apiHandlers := api.NewAPIHandlers(cfg)
 	webHandlers := web.NewWebHandlers()
 
 	r := gin.Default()
@@ -48,8 +46,9 @@ func main() {
 	apiV1.GET("/videos/:filename/download", apiHandlers.GetVideoDownload)
 	apiV1.DELETE("/videos/:filename", apiHandlers.DeleteVideo)
 
-	fmt.Println("🎬 Servidor iniciado na porta", cfg.Port)
+	fmt.Println("🎬 API Service iniciado na porta", cfg.Port)
 	fmt.Printf("📂 Acesse: http://localhost:%s\n", cfg.Port)
+	fmt.Printf("🔧 Processor URL configurado: %s\n", cfg.ProcessorURL)
 
 	log.Fatal(r.Run(":" + cfg.Port))
 }

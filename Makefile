@@ -1,10 +1,12 @@
-.PHONY: help setup run test test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-ci lint-ci test-ci check logs down docker-clean
+.PHONY: help setup run run-api run-processor run-legacy test test-api test-processor test-services test-utils test-clients test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-ci lint-ci test-ci test-api-ci test-processor-ci check logs logs-api logs-processor down docker-clean
 
 DOCKER_IMAGE=videogrinder-processor
 ENV ?= $(word 2,$(MAKECMDGOALS))
 ENV := $(if $(ENV),$(ENV),dev)
 PROFILE = $(if $(filter prod,$(ENV)),prod,dev)
 SERVICE = $(if $(filter prod,$(ENV)),videogrinder-prod,videogrinder-dev)
+API_SERVICE = $(if $(filter prod,$(ENV)),videogrinder-api-prod,videogrinder-api-dev)
+PROCESSOR_SERVICE = $(if $(filter prod,$(ENV)),videogrinder-processor-prod,videogrinder-processor-dev)
 
 # Detect which Docker Compose command is available
 DOCKER_COMPOSE := $(shell command -v docker-compose 2> /dev/null)
@@ -22,31 +24,79 @@ help: ## Show available commands
 	@echo ''
 	@echo 'Usage: make <command> [environment]'
 	@echo 'Environment: dev (default) | prod'
+	@echo ''
+	@echo 'Multi-Service Architecture:'
+	@echo '  make run          # Run both API and processor services'
+	@echo '  make run-api      # Run only API service'
+	@echo '  make run-processor # Run only processor service'
+	@echo '  make run-legacy   # Run legacy monolithic service'
+	@echo ''
+	@echo 'Testing:'
+	@echo '  make test         # Run all Go tests (API + processor)'
+	@echo '  make test-api     # Run only API service tests'
+	@echo '  make test-processor # Run only processor service tests'
+	@echo '  make test-js      # Run JavaScript tests'
+	@echo '  make test-e2e     # Run end-to-end tests'
+	@echo ''
 	@echo 'Examples:'
-	@echo '  make run          # Run in dev mode with hot reload'
-	@echo '  make run prod     # Run in production mode'
+	@echo '  make run dev      # Run API + processor in dev mode'
+	@echo '  make run prod     # Run API + processor in production mode'
 	@echo '  make logs prod    # View production logs'
 	@echo '  make down dev     # Stop dev services'
 	@echo ''
 	@echo 'CI/CD Commands (work inside Docker containers):'
 	@echo '  make fmt-ci       # Format code (CI-friendly)'
 	@echo '  make lint-ci      # Lint code (CI-friendly)'
-	@echo '  make test-ci      # Run tests (CI-friendly)'
+	@echo '  make test-ci      # Run all tests (CI-friendly)'
+	@echo '  make test-api-ci  # Run API tests (CI-friendly)'
+	@echo '  make test-processor-ci # Run processor tests (CI-friendly)'
 	@echo ''
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 setup: ## Configure environment (usage: make setup [dev|prod])
 	@echo "🔧 Setting up $(ENV) environment..."
-	$(COMPOSE_CMD) build $(SERVICE)
+	$(COMPOSE_CMD) build $(API_SERVICE) $(PROCESSOR_SERVICE)
 	@echo "✅ $(ENV) environment ready"
 
-run: ## Run application with auto-build (usage: make run [dev|prod])
-	@echo "🚀 Starting application in $(ENV) mode..."
-	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(SERVICE)
+run: ## Run both API and processor services (usage: make run [dev|prod])
+	@echo "🚀 Starting API + Processor services in $(ENV) mode..."
+	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(API_SERVICE) $(PROCESSOR_SERVICE)
 
-test: ## Run Go unit tests
-	@echo "🧪 Running Go unit tests..."
-	$(COMPOSE_CMD) run --rm videogrinder-dev go test -v ./...
+run-api: ## Run only API service (usage: make run-api [dev|prod])
+	@echo "🎬 Starting API service in $(ENV) mode..."
+	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(API_SERVICE)
+
+run-processor: ## Run only processor service (usage: make run-processor [dev|prod])
+	@echo "🔧 Starting processor service in $(ENV) mode..."
+	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(PROCESSOR_SERVICE)
+
+run-legacy: ## Run legacy monolithic service (usage: make run-legacy)
+	@echo "🚀 Starting legacy monolithic service..."
+	$(COMPOSE_CMD) --profile legacy up --build videogrinder-dev
+
+test: ## Run all Go unit tests (API + processor)
+	@echo "🧪 Running all Go unit tests..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "GOFLAGS='-buildvcs=false' go test -v ./..."
+
+test-api: ## Run API service unit tests
+	@echo "🧪 Running API service unit tests..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "GOFLAGS='-buildvcs=false' go test -v ./internal/api/..."
+
+test-processor: ## Run processor service unit tests
+	@echo "🧪 Running processor service unit tests..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "GOFLAGS='-buildvcs=false' go test -v ./internal/processor/..."
+
+test-services: ## Run services unit tests (API + processor)
+	@echo "🧪 Running services unit tests..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "GOFLAGS='-buildvcs=false' go test -v ./internal/services/..."
+
+test-utils: ## Run utils unit tests
+	@echo "🧪 Running utils unit tests..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "GOFLAGS='-buildvcs=false' go test -v ./internal/utils/..."
+
+test-clients: ## Run clients unit tests
+	@echo "🧪 Running clients unit tests..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "GOFLAGS='-buildvcs=false' go test -v ./internal/clients/..."
 
 test-js: ## Run JavaScript unit tests
 	@echo "🧪 Running JavaScript unit tests..."
@@ -116,22 +166,38 @@ lint-ci: ## Check code quality for CI (without Docker Compose)
 	npm install
 	npx eslint . --ext .js
 
-test-ci: ## Run Go unit tests for CI (without Docker Compose)
-	@echo "🧪 Running Go unit tests..."
+test-ci: ## Run all Go unit tests for CI (without Docker Compose)
+	@echo "🧪 Running all Go unit tests..."
 	GOFLAGS='-buildvcs=false' go test -v ./...
+
+test-api-ci: ## Run API service unit tests for CI
+	@echo "🧪 Running API service unit tests..."
+	GOFLAGS='-buildvcs=false' go test -v ./internal/api/...
+
+test-processor-ci: ## Run processor service unit tests for CI
+	@echo "🧪 Running processor service unit tests..."
+	GOFLAGS='-buildvcs=false' go test -v ./internal/processor/...
 
 check: fmt lint test test-js ## Run all quality checks
 
 logs: ## View application logs (usage: make logs [dev|prod])
 	@echo "📋 Showing $(ENV) logs..."
-	$(COMPOSE_CMD) logs -f $(SERVICE)
+	$(COMPOSE_CMD) logs -f $(API_SERVICE) $(PROCESSOR_SERVICE)
+
+logs-api: ## View API service logs (usage: make logs-api [dev|prod])
+	@echo "📋 Showing API service logs..."
+	$(COMPOSE_CMD) logs -f $(API_SERVICE)
+
+logs-processor: ## View processor service logs (usage: make logs-processor [dev|prod])
+	@echo "📋 Showing processor service logs..."
+	$(COMPOSE_CMD) logs -f $(PROCESSOR_SERVICE)
 
 down: ## Stop services (usage: make down [dev|prod|all])
 	@echo "🐳 Stopping $(ENV) services..."
 ifeq ($(ENV),all)
 	$(COMPOSE_CMD) down
 else
-	$(COMPOSE_CMD) stop $(SERVICE)
+	$(COMPOSE_CMD) stop $(API_SERVICE) $(PROCESSOR_SERVICE)
 endif
 
 docker-clean: ## Clean Docker resources

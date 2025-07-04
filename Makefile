@@ -90,7 +90,7 @@ test-api: ## Run API service unit tests
 
 test-processor: ## Run processor service unit tests
 	@echo "🧪 Running processor service unit tests..."
-	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "GOFLAGS='-buildvcs=false' go test -v ./internal/processor/..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "GOFLAGS='-buildvcs=false' go test -v ./processor/internal/..."
 
 test-services: ## Run services unit tests (API + processor)
 	@echo "🧪 Running services unit tests..."
@@ -182,7 +182,7 @@ test-api-ci: ## Run API service unit tests for CI
 
 test-processor-ci: ## Run processor service unit tests for CI
 	@echo "🧪 Running processor service unit tests..."
-	GOFLAGS='-buildvcs=false' go test -v ./internal/processor/...
+	GOFLAGS='-buildvcs=false' go test -v ./processor/internal/...
 
 check: fmt lint test test-js ## Run all quality checks
 

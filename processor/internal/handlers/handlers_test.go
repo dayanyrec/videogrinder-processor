@@ -1,4 +1,4 @@
-package processor
+package handlers
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 
 	"video-processor/internal/config"
 	"video-processor/internal/models"
-	"video-processor/internal/services"
+	"video-processor/processor/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

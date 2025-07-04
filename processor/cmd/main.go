@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"video-processor/internal/config"
-	"video-processor/internal/processor"
-	"video-processor/internal/services"
+	"video-processor/processor/internal/handlers"
+	"video-processor/processor/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,7 +17,7 @@ func main() {
 	cfg.CreateDirectories()
 
 	videoService := services.NewVideoService(cfg)
-	processorHandlers := processor.NewProcessorHandlers(videoService, cfg)
+	processorHandlers := handlers.NewProcessorHandlers(videoService, cfg)
 
 	r := gin.Default()
 

@@ -1,4 +1,4 @@
-package processor
+package handlers
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 
 	"video-processor/internal/config"
 	"video-processor/internal/models"
-	"video-processor/internal/services"
+	"video-processor/processor/internal/services"
 
 	"github.com/gin-gonic/gin"
 )

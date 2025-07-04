@@ -24,7 +24,7 @@ services:
       - videogrinder-processor-dev
     profiles:
       - dev
-    command: ["air", "-c", ".air.toml"]
+    command: ["air", "-c", ".air-api.toml"]
 
   # Processor Service - handles video processing
   videogrinder-processor-dev:
@@ -49,30 +49,7 @@ services:
       - videogrinder-network
     profiles:
       - dev
-    command: ["go", "run", "./cmd/processor"]
-
-  # Legacy monolithic service (for compatibility during transition)
-  videogrinder-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    ports:
-      - "8080:8080"
-    volumes:
-      - .:/app
-      - videogrinder-uploads:/app/uploads
-      - videogrinder-outputs:/app/outputs
-      - videogrinder-temp:/app/temp
-      - air-tmp:/app/tmp
-    environment:
-      - ENV=development
-      - DEBUG=true
-      - AWS_REGION=us-east-1
-    networks:
-      - videogrinder-network
-    profiles:
-      - legacy
+    command: ["air", "-c", ".air-processor.toml"]
 
   # Production API Service
   videogrinder-api-prod:
@@ -96,8 +73,9 @@ services:
       - videogrinder-processor-prod
     profiles:
       - prod
+    command: ["./cmd/api/main"]
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/videos"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3

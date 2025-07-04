@@ -75,6 +75,14 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [x] API e processor não devem se integrar diretamente e sim por HTTP
 - [x] Adicionar health check endpoints robustos
 - [x] Padronizar formato de health check entre API e Processor (estrutura unificada com checks específicos)
+- [x] Remover código referente ao monolito (projeto será modular daqui em diante)
+- [ ] Criar pasta /api para separação por domínios e mover arquivos de maneira que código relacionado com API+Frontend fique na pasta api seguindo o standart Go
+- [ ] Setup de builder de JS
+- [ ] Criar pasta /frontend dentro da api para separação por domínios
+- [ ] Fazer com que output de ferramenta de build de JS seja a pasta de arquivos /static da api
+- [ ] Criar pasta /processor para separação por domínios e mover arquivos de maneira que código relacionado com Processor fique na pasta processor seguindo o standart Go
+- [ ] Duplicar Dockerfile em cada domínio
+- [ ] Duplicar shared files em cada domínio se necessário
 
 ### 4.1 - Preparação dos repositórios
 

@@ -33,16 +33,18 @@ Esta plataforma permite que os usuários façam upload de vídeos através de um
 O VideoGrinder implementa uma **arquitetura HTTP decoupling** com dois serviços independentes:
 
 ### 🎯 API Service (Porta 8080)
-- **Responsabilidade**: Interface externa, gerenciamento de arquivos
-- **Endpoints**: `/api/v1/videos` (CRUD completo)
+- **Responsabilidade**: Interface web, API REST, gerenciamento de arquivos
+- **Endpoints**: `/` (web), `/api/v1/videos` (CRUD completo), `/health`
 - **Comunicação**: HTTP client para Processor Service
 - **Tecnologia**: Go + Gin + HTTP Client
+- **Executable**: `cmd/api/main.go`
 
 ### ⚙️ Processor Service (Porta 8081)
 - **Responsabilidade**: Processamento de vídeos, extração de frames
 - **Endpoints**: `/process` (processamento), `/health` (status)
 - **Tecnologia**: Go + Gin + FFmpeg
-- **Isolamento**: Serviço independente e escalável
+- **Isolamento**: Serviço independente e escalável  
+- **Executable**: `cmd/processor/main.go`
 
 ### 🔗 Comunicação
 - **API → Processor**: HTTP requests via client dedicado
@@ -93,7 +95,7 @@ make run prod # API + Processor services (produção)
 
 3. **Acesse no navegador:**
 ```
-http://localhost:8080
+http://localhost:8080    # Interface web + API REST
 ```
 
 ### 🛠️ Comandos Essenciais
@@ -103,7 +105,6 @@ http://localhost:8080
 make run          # Executar ambos os serviços (API + Processor)
 make run-api      # Executar apenas o serviço API
 make run-processor # Executar apenas o serviço Processor
-make run-legacy   # Executar serviço monolítico (compatibilidade)
 ```
 
 **Testing:**
@@ -185,10 +186,13 @@ make logs           # Logs de ambos os serviços
 
 ```
 videogrinder-processor/
-├── main.go              # API Service principal
 ├── cmd/                 # Aplicações executáveis
-│   └── processor/       # Processor Service
-│       └── main.go      # Aplicação do Processor
+│   ├── api/             # API Service
+│   │   └── main.go      # Aplicação da API
+│   ├── processor/       # Processor Service
+│   │   └── main.go      # Aplicação do Processor
+│   └── web/             # Web Service (opcional)
+│       └── main.go      # Aplicação web standalone
 ├── internal/            # Código interno (não exportado)
 │   ├── api/             # API Service handlers
 │   │   ├── handlers.go  # Handlers HTTP da API
@@ -348,7 +352,7 @@ make setup          # Recriar ambiente
 - O processamento é sequencial (um vídeo por vez por instância de Processor)
 - Arquivos muito grandes podem consumir bastante espaço em disco
 - O tempo de processamento é proporcional ao tamanho e duração do vídeo
-- Interface web básica (será melhorada nas próximas fases)
+- Interface web básica integrada na API (será separada nas próximas fases)
 - Comunicação HTTP entre serviços adiciona latência mínima
 
 ## 🎯 Melhorias com Multi-Service Architecture
@@ -376,6 +380,7 @@ Para detalhes completos sobre as fases, cronograma e entregas, consulte nosso **
 - [x] **HTTP Decoupling**: Arquitetura multi-service implementada (API + Processor)
 - [x] **Testes Unitários**: Cobertura completa para ambos os serviços
 - [x] **Makefile Atualizado**: Comandos para desenvolvimento multi-service
+- [x] **Limpeza Monolítica**: Remoção completa do código monolítico legado
 - [ ] **CRÍTICO**: Corrigir vulnerabilidades de segurança (G304, G204, errcheck)
 - [ ] Adicionar variáveis de ambiente para configuração
 - [ ] Implementar logging estruturado em JSON

@@ -1,4 +1,4 @@
-.PHONY: help setup run run-api run-processor run-legacy test test-api test-processor test-services test-utils test-clients test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-ci lint-ci test-ci test-api-ci test-processor-ci check logs logs-api logs-processor down docker-clean
+.PHONY: help setup run run-api run-processor test test-api test-processor test-services test-utils test-clients test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-ci lint-ci test-ci test-api-ci test-processor-ci check logs logs-api logs-processor down docker-clean
 
 DOCKER_IMAGE=videogrinder-processor
 ENV ?= $(word 2,$(MAKECMDGOALS))
@@ -29,7 +29,7 @@ help: ## Show available commands
 	@echo '  make run          # Run both API and processor services'
 	@echo '  make run-api      # Run only API service'
 	@echo '  make run-processor # Run only processor service'
-	@echo '  make run-legacy   # Run legacy monolithic service'
+	@echo ''
 	@echo ''
 	@echo 'Testing:'
 	@echo '  make test         # Run all Go tests (API + processor)'
@@ -70,9 +70,7 @@ run-processor: ## Run only processor service (usage: make run-processor [dev|pro
 	@echo "🔧 Starting processor service in $(ENV) mode..."
 	$(COMPOSE_CMD) --profile $(PROFILE) up --build $(PROCESSOR_SERVICE)
 
-run-legacy: ## Run legacy monolithic service (usage: make run-legacy)
-	@echo "🚀 Starting legacy monolithic service..."
-	$(COMPOSE_CMD) --profile legacy up --build videogrinder-dev
+
 
 test: ## Run all Go unit tests (API + processor)
 	@echo "🧪 Running all Go unit tests..."

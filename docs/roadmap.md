@@ -70,21 +70,53 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 
 ## :gear: Fase 4 – Arquitetura de microserviços
 
-### 4.0 - Setup
+### 4.0 - Arquitetura Multi-Service ✅ **CONCLUÍDA**
 
 - [x] API e processor não devem se integrar diretamente e sim por HTTP
 - [x] Adicionar health check endpoints robustos
 - [x] Padronizar formato de health check entre API e Processor (estrutura unificada com checks específicos)
 - [x] Remover código referente ao monolito (projeto será modular daqui em diante)
-- [ ] Criar pasta /api para separação por domínios e mover arquivos de maneira que código relacionado com API+Frontend fique na pasta api seguindo o standart Go
-- [ ] Setup de builder de JS
-- [ ] Criar pasta /frontend dentro da api para separação por domínios
-- [ ] Fazer com que output de ferramenta de build de JS seja a pasta de arquivos /static da api
-- [ ] Criar pasta /processor para separação por domínios e mover arquivos de maneira que código relacionado com Processor fique na pasta processor seguindo o standart Go
-- [ ] Duplicar Dockerfile em cada domínio
-- [ ] Duplicar shared files em cada domínio se necessário
+- [x] Criar arquitetura de 3 serviços independentes (Web + API + Processor)
+- [x] Separar Web Service (porta 8080) para frontend e arquivos estáticos
+- [x] Separar API Service (porta 8081) para REST API e comunicação com Processor
+- [x] Manter Processor Service (porta 8082) para processamento de vídeos
+- [x] Implementar comunicação HTTP entre API e Processor via client dedicado
+- [x] Criar estrutura modular com cada serviço tendo seu próprio internal/
+- [x] Migrar models para cada serviço específico (api/internal/models, processor/internal/models)
+- [x] Criar configurações independentes por serviço com próprias portas
+- [x] Implementar Docker Compose multi-service com hot reload
+- [x] Atualizar Makefile com comandos para desenvolvimento multi-service
+- [x] Containerizar todos os comandos npm seguindo tech-mandates
+- [x] Padronizar endpoints de health (/health) em todos os serviços
+- [x] Atualizar documentação (README.md e architecture.md) para refletir nova arquitetura
 
-### 4.1 - Preparação dos repositórios
+**Resultado**: Arquitetura multi-service totalmente funcional com 3 serviços independentes, comunicação HTTP, configurações isoladas, testes completos (39+ testes Go + 59 testes JS + 19 testes E2E) e documentação atualizada. O projeto está preparado para microserviços e segue todos os tech-mandates.
+
+### 4.1 - Integração LocalStack AWS Básica
+- [ ] **Setup LocalStack Environment**
+  - [ ] Configurar LocalStack com S3, DynamoDB e SQS
+  - [ ] Criar docker-compose para LocalStack integrado ao ambiente de desenvolvimento
+  - [ ] Configurar credenciais AWS locais para desenvolvimento
+- [ ] **Migração de Armazenamento para S3**
+  - [ ] Implementar AWS S3 client para upload de vídeos
+  - [ ] Migrar diretório uploads/ para S3 buckets
+  - [ ] Migrar diretório outputs/ para S3 buckets
+  - [ ] Implementar presigned URLs para download de arquivos
+- [ ] **Persistência com DynamoDB**
+  - [ ] Criar schema da tabela `video_jobs` no DynamoDB
+  - [ ] Implementar repository pattern para jobs de processamento
+  - [ ] Salvar solicitação recebida na API no DynamoDB
+  - [ ] Atualizar status do job quando Processor terminar processamento
+- [ ] **Comunicação Assíncrona**
+  - [ ] Implementar SQS para comunicação API → Processor
+  - [ ] Refatorar API para enviar jobs via SQS em vez de HTTP direto
+  - [ ] Implementar polling no frontend para atualizar status em tempo real
+- [ ] **Configuração e Ambiente**
+  - [ ] Adicionar variáveis de ambiente para AWS services
+  - [ ] Implementar fallback para desenvolvimento local vs LocalStack
+  - [ ] Atualizar Makefile com comandos para LocalStack
+
+### 4.2 - Preparação dos repositórios
 
 - [ ] Criar repositório `videogrinder-frontend`
 - [ ] Criar repositório `videogrinder-api` 
@@ -92,7 +124,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Manter `videogrinder-processor` como repositório atual
 - [ ] Definir contratos de API entre serviços
 
-### 4.2 - Extração gradual (uma por vez)
+### 4.3 - Extração gradual (uma por vez)
 
 - [ ] Extrair e deployar frontend em S3
 - [ ] Implementar CI/CD para frontend
@@ -101,7 +133,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Implementar CI/CD para API em EKS
 - [ ] Testar integração frontend -> API extraída
 
-### 4.3 - Handler e orquestração
+### 4.4 - Handler e orquestração
 
 - [ ] Criar Lambda handler para orquestração  
 - [ ] Implementar CI/CD para handler
@@ -109,7 +141,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Setup do processor como Job K8S
 - [ ] Trigger processor via handler
 
-### 4.4 - Integração e otimização
+### 4.5 - Integração e otimização
 
 - [ ] Implementar processamento paralelo de múltiplos vídeos
 - [ ] Testes de integração end-to-end

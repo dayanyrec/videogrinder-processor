@@ -260,7 +260,7 @@ Response:
 **API Service (Padronizado):**
 ```bash
 GET http://localhost:8081/health
-GET http://localhost:8081/api/v1/health
+GET http://localhost:8081/health
 
 Response:
 {

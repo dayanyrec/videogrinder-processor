@@ -289,8 +289,8 @@ make logs-processor # Ver logs apenas do Processor
 
 ### Erro de comunicação entre serviços
 ```bash
-# Verificar se o Processor está rodando
-curl http://localhost:8082/health
+# Verificar se o Processor está rodando via Docker
+docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8082/health"
 
 # Verificar se a API consegue acessar o Processor
 make logs-api | grep "processor"
@@ -304,16 +304,16 @@ make run
 - Verifique se o formato é suportado
 - Confirme se o arquivo não está corrompido
 - Execute `make logs-processor` para ver erros específicos do processamento
-- Verifique se o Processor Service está acessível: `curl http://localhost:8082/health`
+- Verifique se o Processor Service está acessível via Docker: `docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8082/health"`
 
 ### Portas em uso
 ```bash
 # Porta 8080 (API) ou 8082 (Processor) em uso
 make down     # Parar todos os serviços do VideoGrinder
 
-# Verificar processos nas portas
-lsof -ti:8080 | xargs kill -9  # API
-lsof -ti:8082 | xargs kill -9  # Processor
+# Verificar processos nas portas via Docker (se necessário)
+docker-compose --profile tools run --rm videogrinder-devtools sh -c "netstat -tulpn | grep :8080"  # API
+docker-compose --profile tools run --rm videogrinder-devtools sh -c "netstat -tulpn | grep :8082"  # Processor
 ```
 
 ### Problemas com serviços individuais
@@ -326,14 +326,15 @@ make run-api
 make test-processor
 make run-processor
 
-# Verificar saúde dos serviços
-curl http://localhost:8080/api/v1/videos  # API
-curl http://localhost:8082/health         # Processor
+# Verificar saúde dos serviços via Docker
+docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8081/health"  # API
+docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8082/health"         # Processor
 ```
 
 ### Erro de permissão em diretórios
 ```bash
-sudo chmod 755 uploads outputs temp
+# Ajustar permissões via Docker (se necessário)
+docker-compose --profile tools run --rm videogrinder-devtools sh -c "chmod 755 uploads outputs temp"
 ```
 
 ### Problemas com Docker
@@ -397,7 +398,8 @@ Contribuições são bem-vindas! Antes de contribuir:
 
 1. **📋 Consulte nosso [roadmap](./docs/roadmap.md)** para entender a direção do projeto
 2. **🏛️ Leia nossos [Tech Mandates](./docs/tech-mandates.md)** para seguir nossas diretrizes técnicas
-3. **🐳 Use Docker** para desenvolvimento (conforme mandates)
+3. **🐳 Use Docker exclusivamente** - Todos os comandos devem ser executados via containers (npm, go, curl, etc.)
+4. **🚫 Zero dependências locais** - Apenas Docker e Git são necessários na máquina do desenvolvedor
 
 Sinta-se à vontade para:
 - Reportar bugs

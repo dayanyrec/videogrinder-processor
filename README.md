@@ -315,7 +315,7 @@ make logs-processor # Ver logs apenas do Processor
 ### Erro de comunicação entre serviços
 ```bash
 # Verificar se o Processor está rodando via Docker
-docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8082/health"
+docker-compose run --rm videogrinder-web-dev sh -c "curl http://localhost:8082/health"
 
 # Verificar se a API consegue acessar o Processor
 make logs-api | grep "processor"
@@ -329,7 +329,7 @@ make run
 - Verifique se o formato é suportado
 - Confirme se o arquivo não está corrompido
 - Execute `make logs-processor` para ver erros específicos do processamento
-- Verifique se o Processor Service está acessível via Docker: `docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8082/health"`
+- Verifique se o Processor Service está acessível via Docker: `docker-compose run --rm videogrinder-web-dev sh -c "curl http://localhost:8082/health"`
 
 ### Portas em uso
 ```bash
@@ -337,9 +337,9 @@ make run
 make down     # Parar todos os serviços do VideoGrinder
 
 # Verificar processos nas portas via Docker (se necessário)
-docker-compose --profile tools run --rm videogrinder-devtools sh -c "netstat -tulpn | grep :8080"  # Web
-docker-compose --profile tools run --rm videogrinder-devtools sh -c "netstat -tulpn | grep :8081"  # API
-docker-compose --profile tools run --rm videogrinder-devtools sh -c "netstat -tulpn | grep :8082"  # Processor
+docker-compose run --rm videogrinder-web-dev sh -c "netstat -tulpn | grep :8080"  # Web
+docker-compose run --rm videogrinder-web-dev sh -c "netstat -tulpn | grep :8081"  # API
+docker-compose run --rm videogrinder-web-dev sh -c "netstat -tulpn | grep :8082"  # Processor
 ```
 
 ### Problemas com serviços individuais
@@ -357,15 +357,15 @@ make test-processor
 make run-processor
 
 # Verificar saúde dos serviços via Docker
-docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8080/health"  # Web
-docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8081/health"  # API
-docker-compose --profile tools run --rm videogrinder-devtools sh -c "curl http://localhost:8082/health"  # Processor
+docker-compose run --rm videogrinder-web-dev sh -c "curl http://localhost:8080/health"  # Web
+docker-compose run --rm videogrinder-web-dev sh -c "curl http://localhost:8081/health"  # API
+docker-compose run --rm videogrinder-web-dev sh -c "curl http://localhost:8082/health"  # Processor
 ```
 
 ### Erro de permissão em diretórios
 ```bash
 # Ajustar permissões via Docker (se necessário)
-docker-compose --profile tools run --rm videogrinder-devtools sh -c "chmod 755 uploads outputs temp"
+docker-compose run --rm videogrinder-web-dev sh -c "chmod 755 uploads outputs temp"
 ```
 
 ### Problemas com Docker

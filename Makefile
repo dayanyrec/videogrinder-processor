@@ -151,6 +151,15 @@ fmt: ## Format code (Go + JS)
 	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx eslint . --ext .js --fix"
 	@echo "✅ Code formatted"
 
+fmt-check: ## Check code formatting without changing files
+	@echo "🎨 Checking Go code formatting..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "test -z \"\$$(gofmt -l .)\" || (echo 'Go files not formatted:' && gofmt -l . && exit 1)"
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "test -z \"\$$(goimports -l .)\" || (echo 'Go imports not formatted:' && goimports -l . && exit 1)"
+	@echo "🎨 Checking JS code formatting..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "cd web && npm install"
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "cd web && npx eslint . --ext .js"
+	@echo "✅ Code formatting is correct"
+
 fmt-js: ## Format JavaScript code
 	@echo "🎨 Formatting JS code..."
 	$(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install"
@@ -161,7 +170,13 @@ check: fmt lint test test-js ## Run all quality checks
 
 health: ## Check application health (usage: make health [dev|prod])
 	@echo "🏥 Checking application health..."
-	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -f http://host.docker.internal:8080/health || echo 'Health check failed'"
+	@echo "🌐 Checking Web Service (port 8080)..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -f http://host.docker.internal:8080/health || echo '❌ Web Service failed'"
+	@echo "🔌 Checking API Service (port 8081)..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -f http://host.docker.internal:8081/health || echo '❌ API Service failed'"
+	@echo "⚙️  Checking Processor Service (port 8082)..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-devtools sh -c "curl -f http://host.docker.internal:8082/health || echo '❌ Processor Service failed'"
+	@echo "✅ Health check completed!"
 
 logs: ## View all services logs (usage: make logs [dev|prod])
 	@echo "📋 Showing all services logs..."

@@ -49,9 +49,9 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 
 ---
 
-## :jigsaw: Fase 2 – Modularização (ainda no monolito)
+## :jigsaw: Fase 2 – Modularização (ainda no monolito) ✅ **CONCLUÍDA**
 
-### 2.1 - Estruturação do Código
+### 2.1 - Estruturação do Código ✅ **CONCLUÍDA**
 - [x] Extrair configuração para internal/config (variáveis de ambiente)
 - [x] Extrair core de processamento para internal/services/video
 - [x] Cobrir o core com testes unitários
@@ -60,44 +60,19 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [x] Extrair frontend para arquivos estáticos
 - [x] Cobrir frontend (JS) com testes unitários
 
-### 2.2 - API Design e Qualidade
+### 2.2 - API Design e Qualidade ✅ **CONCLUÍDA**
 - [x] Extrair API para módulo interno
 - [x] Melhorar implementação da API tornando REST
-- [ ] Cobrir API com testes unitários
-- [ ] Cobrir API com testes de integração
-- [ ] Documentar API com Swagger/OpenAPI automático
-
----
-
-## :card_file_box: Fase 3 – Persistência e rastreabilidade
-
-### 3.1 - Persistência de Dados
-- [ ] Criar schema da tabela `jobs` no DynamoDB
-- [ ] Implementar repository pattern para jobs
-- [ ] Persistir pedidos de processamento na base
-- [ ] Implementar queries eficientes (evitando scan)
-- [ ] Listar processamentos com paginação
-- [ ] Associar usuário identificado ou anônimo a cada job
-
-### 3.2 - Proteção de Dados e LGPD
-- [ ] Implementar criptografia em trânsito e em repouso via AWS KMS
-- [ ] Configurar isolamento de dados entre usuários via DynamoDB
-- [ ] Implementar retenção de dados configurável por usuário
-- [ ] Adicionar políticas de LGPD para dados brasileiros
-- [ ] Implementar direito ao esquecimento (exclusão de dados)
-- [ ] Criar auditoria de acesso a dados pessoais
-- [ ] Configurar backup automático via AWS Backup
-
-### 3.3 - Operações e Manutenção
-- [ ] Implementar cleanup de jobs antigos
-- [ ] Adicionar estratégias de backup/recovery
-- [ ] Implementar teste automatizado de restore
-- [ ] Configurar S3 Lifecycle para cleanup automático
-- [ ] Migrar de LocalStack para DynamoDB real na AWS
+- [x] Cobrir API com testes unitários
+- [x] Cobrir API com testes de integração
 
 ---
 
 ## :gear: Fase 4 – Arquitetura de microserviços
+
+### 4.0 - Setup
+
+- [ ] API e processor não devem se integrar diretamente e sim por HTTP
 
 ### 4.1 - Preparação dos repositórios
 
@@ -163,11 +138,13 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Adicionar variáveis de ambiente para configuração
 - [ ] Implementar timeouts para operações FFmpeg
 - [ ] Adicionar rate limiting básico
+- [ ] Documentar API com Swagger/OpenAPI automático
 
 ### 1.3 - Observabilidade e Monitoramento
 - [ ] Implementar logging estruturado em JSON
 - [ ] Melhorar tratamento de erros com contexto adequado
 - [ ] Adicionar health check endpoints robustos
+
 - [ ] Integrar CloudWatch Logs para desenvolvimento
 - [ ] Implementar métricas básicas de performance
 - [ ] Adicionar monitoramento de recursos (CPU, memória, I/O)
@@ -200,6 +177,33 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Adicionar middleware de CORS, rate limiting básico
 - [ ] Implementar graceful degradation para falhas
 
+## :card_file_box: Fase 3 – Persistência e rastreabilidade
+
+### 3.1 - Persistência de Dados
+- [ ] Criar schema da tabela `jobs` no DynamoDB
+- [ ] Implementar repository pattern para jobs
+- [ ] Persistir pedidos de processamento na base
+- [ ] Implementar queries eficientes (evitando scan)
+- [ ] Listar processamentos com paginação
+- [ ] Associar usuário identificado ou anônimo a cada job
+
+### 3.2 - Proteção de Dados e LGPD
+- [ ] Implementar criptografia em trânsito e em repouso via AWS KMS
+- [ ] Configurar isolamento de dados entre usuários via DynamoDB
+- [ ] Implementar retenção de dados configurável por usuário
+- [ ] Adicionar políticas de LGPD para dados brasileiros
+- [ ] Implementar direito ao esquecimento (exclusão de dados)
+- [ ] Criar auditoria de acesso a dados pessoais
+- [ ] Configurar backup automático via AWS Backup
+
+### 3.3 - Operações e Manutenção
+- [ ] Implementar cleanup de jobs antigos
+- [ ] Adicionar estratégias de backup/recovery
+- [ ] Implementar teste automatizado de restore
+- [ ] Configurar S3 Lifecycle para cleanup automático
+- [ ] Migrar de LocalStack para DynamoDB real na AWS
+
+---
 
 ---
 

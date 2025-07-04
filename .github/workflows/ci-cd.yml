@@ -71,6 +71,10 @@ jobs:
 
     - name: 🚀 Step 5 - Health Check Services
       run: |
+        echo "🧹 Cleaning up any existing containers..."
+        make down prod &
+        sleep 5
+
         make run prod &
         sleep 5
         if ! timeout 60s bash -c 'until make health; do sleep 2; done'; then

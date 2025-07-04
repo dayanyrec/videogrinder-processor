@@ -264,9 +264,9 @@ logs-processor-tail: ## Show last 30 lines of processor service logs (usage: mak
 down: ## Stop services (usage: make down [dev|prod|all])
 	@echo "🐳 Stopping $(ENV) services..."
 ifeq ($(ENV),all)
-	$(COMPOSE_CMD) down
+	$(COMPOSE_CMD) down --volumes --remove-orphans
 else
-	$(COMPOSE_CMD) stop $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+	$(COMPOSE_CMD) --profile $(PROFILE) down --volumes --remove-orphans
 endif
 
 docker-clean: ## Clean Docker resources

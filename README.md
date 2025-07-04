@@ -39,7 +39,7 @@ O VideoGrinder implementa uma **arquitetura HTTP decoupling** com dois serviços
 - **Tecnologia**: Go + Gin + HTTP Client
 - **Executable**: `cmd/api/main.go`
 
-### ⚙️ Processor Service (Porta 8081)
+### ⚙️ Processor Service (Porta 8082)
 - **Responsabilidade**: Processamento de vídeos, extração de frames
 - **Endpoints**: `/process` (processamento), `/health` (status)
 - **Tecnologia**: Go + Gin + FFmpeg
@@ -234,12 +234,12 @@ videogrinder-processor/
 ### Ambiente Multi-Service
 ```bash
 # Executar ambos os serviços
-make run      # API (8080) + Processor (8081) em desenvolvimento
-make run prod # API (8080) + Processor (8081) em produção
+make run      # API (8080) + Processor (8082) em desenvolvimento
+make run prod # API (8080) + Processor (8082) em produção
 
 # Executar serviços individualmente
 make run-api      # Apenas API service na porta 8080
-make run-processor # Apenas Processor service na porta 8081
+make run-processor # Apenas Processor service na porta 8082
 
 # Monitoramento
 make logs         # Logs de ambos os serviços
@@ -249,7 +249,7 @@ make logs-processor # Logs apenas do Processor
 
 ### Configurações Atuais
 - **API Service**: Porta 8080 (interface externa)
-- **Processor Service**: Porta 8081 (processamento interno)
+- **Processor Service**: Porta 8082 (processamento interno)
 - **Comunicação**: HTTP entre serviços com timeout de 5 minutos
 - **Taxa de extração**: 1 frame por segundo (fps=1)  
 - **Formatos suportados**: MP4, AVI, MOV, MKV, WMV, FLV, WebM
@@ -257,7 +257,7 @@ make logs-processor # Logs apenas do Processor
 ### Variáveis de Ambiente
 ```bash
 # Configuração do Processor Service
-export PROCESSOR_URL=http://localhost:8081  # URL do Processor Service
+export PROCESSOR_URL=http://localhost:8082  # URL do Processor Service
 
 # Configuração de diretórios (opcional)
 export UPLOADS_DIR=./uploads
@@ -286,7 +286,7 @@ make logs-processor # Ver logs apenas do Processor
 ### Erro de comunicação entre serviços
 ```bash
 # Verificar se o Processor está rodando
-curl http://localhost:8081/health
+curl http://localhost:8082/health
 
 # Verificar se a API consegue acessar o Processor
 make logs-api | grep "processor"
@@ -300,16 +300,16 @@ make run
 - Verifique se o formato é suportado
 - Confirme se o arquivo não está corrompido
 - Execute `make logs-processor` para ver erros específicos do processamento
-- Verifique se o Processor Service está acessível: `curl http://localhost:8081/health`
+- Verifique se o Processor Service está acessível: `curl http://localhost:8082/health`
 
 ### Portas em uso
 ```bash
-# Porta 8080 (API) ou 8081 (Processor) em uso
+# Porta 8080 (API) ou 8082 (Processor) em uso
 make down     # Parar todos os serviços do VideoGrinder
 
 # Verificar processos nas portas
 lsof -ti:8080 | xargs kill -9  # API
-lsof -ti:8081 | xargs kill -9  # Processor
+lsof -ti:8082 | xargs kill -9  # Processor
 ```
 
 ### Problemas com serviços individuais
@@ -324,7 +324,7 @@ make run-processor
 
 # Verificar saúde dos serviços
 curl http://localhost:8080/api/v1/videos  # API
-curl http://localhost:8081/health         # Processor
+curl http://localhost:8082/health         # Processor
 ```
 
 ### Erro de permissão em diretórios

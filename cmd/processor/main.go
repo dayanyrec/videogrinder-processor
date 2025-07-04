@@ -18,7 +18,7 @@ func main() {
 
 	// Override port for processor service
 	if cfg.Port == "8080" {
-		cfg.Port = "8081"
+		cfg.Port = "8082"
 	}
 
 	videoService := services.NewVideoService(cfg)

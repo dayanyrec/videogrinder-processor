@@ -19,7 +19,7 @@ func New() *Config {
 		UploadsDir:   getEnv("UPLOADS_DIR", "uploads"),
 		OutputsDir:   getEnv("OUTPUTS_DIR", "outputs"),
 		TempDir:      getEnv("TEMP_DIR", "temp"),
-		ProcessorURL: getEnv("PROCESSOR_URL", "http://localhost:8081"),
+		ProcessorURL: getEnv("PROCESSOR_URL", "http://localhost:8082"),
 	}
 }
 

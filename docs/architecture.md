@@ -26,7 +26,7 @@ graph TB
         end
         
         subgraph "Processor Service Container"
-            Processor["Processor Service<br/>Port 8081"]
+            Processor["Processor Service<br/>Port 8082"]
             ProcessorHandlers["Processor Handlers<br/>• ProcessVideoUpload<br/>• GetProcessorStatus"]
             VideoService["Video Service<br/>• Frame Extraction<br/>• ZIP Creation"]
         end
@@ -84,7 +84,7 @@ graph TB
 - **HTTP Client**: Comunicação com Processor
 - **Multipart Upload**: Recebimento de arquivos
 
-### ⚙️ Processor Service (Porta 8081)
+### ⚙️ Processor Service (Porta 8082)
 
 **Responsabilidades:**
 - Processamento de vídeos com FFmpeg
@@ -169,7 +169,7 @@ httpClient: &http.Client{
 
 **Processor Service (Padronizado):**
 ```bash
-GET http://localhost:8081/health
+GET http://localhost:8082/health
 
 Response:
 {
@@ -217,7 +217,7 @@ Response:
     },
     "processor": {
       "status": "healthy",
-      "url": "http://videogrinder-processor-dev:8081",
+      "url": "http://videogrinder-processor-dev:8082",
       "latency_ms": 50,
       "last_check": 1751595019
     }
@@ -265,7 +265,7 @@ internal/
 ### Separação de Executáveis
 ```
 ├── main.go                # API Service (porta 8080)
-└── cmd/processor/main.go  # Processor Service (porta 8081)
+└── cmd/processor/main.go  # Processor Service (porta 8082)
 ```
 
 ## 🐳 Deploy e Containerização
@@ -282,7 +282,7 @@ services:
   videogrinder-processor-dev:
     build: .
     ports:
-      - "8081:8081"
+      - "8082:8082"
     command: ["go", "run", "./cmd/processor"]
 ```
 
@@ -371,14 +371,14 @@ make run-processor    # Apenas Processor (desenvolvimento backend)
 ### Monitoramento
 ```bash
 curl http://localhost:8080/api/v1/videos  # API health
-curl http://localhost:8081/health         # Processor health
+curl http://localhost:8082/health         # Processor health
 ```
 
 ## 🔧 Variáveis de Ambiente
 
 ```bash
 # Configuração do Processor Service
-export PROCESSOR_URL=http://localhost:8081
+export PROCESSOR_URL=http://localhost:8082
 
 # Configuração de diretórios
 export UPLOADS_DIR=./uploads

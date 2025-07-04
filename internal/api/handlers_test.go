@@ -59,7 +59,7 @@ func setupTestHandlers() (handlers *APIHandlers, cleanup func()) {
 		UploadsDir:   uploadsDir,
 		OutputsDir:   outputsDir,
 		TempDir:      tempVideoDir,
-		ProcessorURL: "http://localhost:8081",
+		ProcessorURL: "http://localhost:8082",
 	}
 
 	handlers = &APIHandlers{
@@ -79,7 +79,7 @@ func TestNewAPIHandlers_ShouldInitializeHandlersWithCorrectDependencies(t *testi
 		UploadsDir:   "uploads",
 		OutputsDir:   "outputs",
 		TempDir:      "temp",
-		ProcessorURL: "http://localhost:8081",
+		ProcessorURL: "http://localhost:8082",
 	}
 
 	handlers := NewAPIHandlers(cfg)

@@ -17,7 +17,7 @@ services:
       - ENV=development
       - DEBUG=true
       - AWS_REGION=us-east-1
-      - PROCESSOR_URL=http://videogrinder-processor-dev:8081
+      - PROCESSOR_URL=http://videogrinder-processor-dev:8082
     networks:
       - videogrinder-network
     depends_on:
@@ -33,7 +33,7 @@ services:
       dockerfile: Dockerfile
       target: development
     ports:
-      - "8081:8081"
+      - "8082:8082"
     volumes:
       - .:/app
       - videogrinder-uploads:/app/uploads
@@ -44,7 +44,7 @@ services:
       - ENV=development
       - DEBUG=true
       - AWS_REGION=us-east-1
-      - PORT=8081
+      - PORT=8082
     networks:
       - videogrinder-network
     profiles:
@@ -66,7 +66,7 @@ services:
     environment:
       - ENV=production
       - AWS_REGION=us-east-1
-      - PROCESSOR_URL=http://videogrinder-processor-prod:8081
+      - PROCESSOR_URL=http://videogrinder-processor-prod:8082
     networks:
       - videogrinder-network
     depends_on:
@@ -88,7 +88,7 @@ services:
       dockerfile: Dockerfile
       target: production
     ports:
-      - "8081:8081"
+      - "8082:8082"
     volumes:
       - videogrinder-uploads:/app/uploads
       - videogrinder-outputs:/app/outputs
@@ -96,14 +96,14 @@ services:
     environment:
       - ENV=production
       - AWS_REGION=us-east-1
-      - PORT=8081
+      - PORT=8082
     networks:
       - videogrinder-network
     profiles:
       - prod
     command: ["./cmd/processor/main"]
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/health"]
       interval: 30s
       timeout: 10s
       retries: 3

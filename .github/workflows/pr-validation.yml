@@ -83,7 +83,7 @@ jobs:
 
           # Install Node.js dependencies and run E2E tests directly on runner
           cd web
-          npm ci
+          npm install
           npm run test:e2e
 
           echo "✅ E2E tests completed!"

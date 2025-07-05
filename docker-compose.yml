@@ -18,34 +18,25 @@ services:
   videogrinder-web-dev:
     build:
       context: .
-      dockerfile: Dockerfile
       target: development
+    container_name: videogrinder-web-dev
     ports:
       - "8080:8080"
     volumes:
-      - .:/app
-      - air-tmp:/app/tmp
-    environment:
-      - ENV=development
-      - DEBUG=true
-      - AWS_REGION=us-east-1
-      - PORT=8080
-      - API_URL=http://videogrinder-api-dev:8081
+      - ./web:/app/web
+      - air-tmp:/tmp
+    depends_on:
+      - videogrinder-api-dev
     networks:
       - videogrinder-network
-    depends_on:
-      videogrinder-api-dev:
-        condition: service_healthy
     profiles:
       - dev
-    command: ["air", "-c", ".air-web.toml"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-
 
   # API Service - handles REST API requests
   videogrinder-api-dev:
@@ -67,6 +58,9 @@ services:
       - AWS_REGION=us-east-1
       - PORT=8081
       - PROCESSOR_URL=http://videogrinder-processor-dev:8082
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
     networks:
       - videogrinder-network
     depends_on:
@@ -101,6 +95,9 @@ services:
       - DEBUG=true
       - AWS_REGION=us-east-1
       - PORT=8082
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
     networks:
       - videogrinder-network
     profiles:
@@ -201,6 +198,37 @@ services:
       retries: 3
       start_period: 40s
 
+  # LocalStack - AWS services emulation for development
+  localstack:
+    image: localstack/localstack:3.0
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+    environment:
+      - DEBUG=1
+      - SERVICES=s3,dynamodb,sqs
+      - DATA_DIR=/var/lib/localstack
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - HOSTNAME_EXTERNAL=localstack
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - PERSISTENCE=1
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - videogrinder-network
+    profiles:
+      - dev
+      - localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
 volumes:
   videogrinder-uploads:
     driver: local
@@ -209,6 +237,8 @@ volumes:
   videogrinder-temp:
     driver: local
   air-tmp:
+    driver: local
+  localstack-data:
     driver: local
 
 networks:

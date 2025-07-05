@@ -264,6 +264,8 @@ logs-processor-tail: ## Show last 30 lines of processor service logs (usage: mak
 down: ## Stop services (usage: make down [dev|prod|all])
 	@echo "🐳 Stopping $(ENV) services..."
 ifeq ($(ENV),all)
+	$(COMPOSE_CMD) --profile dev down --volumes --remove-orphans
+	$(COMPOSE_CMD) --profile prod down --volumes --remove-orphans
 	$(COMPOSE_CMD) down --volumes --remove-orphans
 else
 	$(COMPOSE_CMD) --profile $(PROFILE) down --volumes --remove-orphans

@@ -111,17 +111,12 @@ jobs:
 
           if [ "${{ needs.code-quality.result }}" = "success" ]; then
             echo "**Code Quality**: ✅ PASSED" >> $GITHUB_STEP_SUMMARY
-            echo "- Code formatting" >> $GITHUB_STEP_SUMMARY
-            echo "- Linting (Go + JS)" >> $GITHUB_STEP_SUMMARY
-            echo "- Unit tests" >> $GITHUB_STEP_SUMMARY
           else
             echo "**Code Quality**: ❌ FAILED" >> $GITHUB_STEP_SUMMARY
           fi
 
           if [ "${{ needs.build-and-health.result }}" = "success" ]; then
             echo "**Build & Health Check**: ✅ PASSED" >> $GITHUB_STEP_SUMMARY
-            echo "- Production build" >> $GITHUB_STEP_SUMMARY
-            echo "- Health check" >> $GITHUB_STEP_SUMMARY
           else
             echo "**Build & Health Check**: ❌ FAILED" >> $GITHUB_STEP_SUMMARY
           fi

@@ -156,6 +156,9 @@ services:
       - AWS_REGION=us-east-1
       - PORT=8081
       - PROCESSOR_URL=http://videogrinder-processor-prod:8082
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
     networks:
       - videogrinder-network
     depends_on:
@@ -187,6 +190,9 @@ services:
       - ENV=production
       - AWS_REGION=us-east-1
       - PORT=8082
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
     networks:
       - videogrinder-network
     profiles:

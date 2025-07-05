@@ -22,8 +22,8 @@ export AWS_DEFAULT_REGION=us-east-1
 export AWS_ENDPOINT_URL=http://127.0.0.1:4566
 
 echo "📦 Creating S3 buckets..."
-aws s3 mb s3://videogrinder-uploads --endpoint-url=http://127.0.0.1:4566
-aws s3 mb s3://videogrinder-outputs --endpoint-url=http://127.0.0.1:4566
+aws s3 mb s3://videogrinder-uploads --endpoint-url=http://127.0.0.1:4566 2>/dev/null || echo "  Bucket videogrinder-uploads already exists"
+aws s3 mb s3://videogrinder-outputs --endpoint-url=http://127.0.0.1:4566 2>/dev/null || echo "  Bucket videogrinder-outputs already exists"
 
 echo "🗃️ Creating DynamoDB tables..."
 aws dynamodb create-table \
@@ -53,16 +53,22 @@ aws dynamodb create-table \
             }
         ]' \
     --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
-    --endpoint-url=http://127.0.0.1:4566
+    --endpoint-url=http://127.0.0.1:4566 \
+    --no-cli-pager \
+    --output json 2>/dev/null || echo "  Table video-jobs already exists"
 
 echo "📬 Creating SQS queues..."
 aws sqs create-queue \
     --queue-name video-processing-queue \
-    --endpoint-url=http://127.0.0.1:4566
+    --endpoint-url=http://127.0.0.1:4566 \
+    --no-cli-pager \
+    --output json 2>/dev/null || echo "  Queue video-processing-queue already exists"
 
 aws sqs create-queue \
     --queue-name video-processing-dlq \
-    --endpoint-url=http://127.0.0.1:4566
+    --endpoint-url=http://127.0.0.1:4566 \
+    --no-cli-pager \
+    --output json 2>/dev/null || echo "  Queue video-processing-dlq already exists"
 
 echo "🎉 LocalStack initialization completed!"
 echo ""

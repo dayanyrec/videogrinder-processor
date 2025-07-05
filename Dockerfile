@@ -6,7 +6,8 @@ RUN apk add --no-cache \
     make \
     bash \
     nodejs \
-    npm
+    npm \
+    ca-certificates
 
 # Install Go tools
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1 && \
@@ -28,14 +29,11 @@ RUN apk add --no-cache \
     ffmpeg \
     git \
     make \
-    curl \
     bash \
-    nodejs \
-    npm
+    ca-certificates \
+    curl
 
-RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1 && \
-    go install golang.org/x/tools/cmd/goimports@v0.21.0 && \
-    go install github.com/cosmtrek/air@v1.49.0
+RUN go install github.com/cosmtrek/air@v1.49.0
 
 WORKDIR /app
 
@@ -85,7 +83,9 @@ FROM alpine:3.18 AS production
 RUN apk add --no-cache \
     ffmpeg \
     ca-certificates \
-    tzdata && \
+    tzdata \
+    wget \
+    curl && \
     addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 

@@ -4,10 +4,10 @@
 
 # Node.js
 node_modules/
+web/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
 
 # Go testing
 *_test.go
@@ -28,7 +28,6 @@ README.md
 
 # Development configuration
 
-.eslintrc.js
 .editorconfig
 .golangci.yml
 Makefile

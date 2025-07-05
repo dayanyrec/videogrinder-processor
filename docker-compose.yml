@@ -7,6 +7,7 @@ services:
       target: tools
     volumes:
       - .:/app
+      - /app/web/node_modules
     environment:
       - ENV=tools
     profiles:

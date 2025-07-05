@@ -92,7 +92,7 @@ jobs:
       - name: Start services with LocalStack
         run: |
           echo "🚀 Starting services with LocalStack integration..."
-          make run dev
+          make run prod
 
       - name: Run E2E Tests
         uses: cypress-io/github-action@v5

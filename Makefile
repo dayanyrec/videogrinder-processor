@@ -1,4 +1,4 @@
-.PHONY: help setup run run-api run-web run-processor test test-api test-processor test-services test-utils test-clients test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-check check logs logs-web logs-api logs-processor down docker-clean health shell restart restart-api restart-web restart-processor build rebuild status ps
+.PHONY: help setup run run-api run-web run-processor test test-api test-processor test-services test-utils test-clients test-js test-js-watch test-js-coverage test-e2e test-e2e-open lint lint-js fmt fmt-js fmt-check check check-full logs logs-web logs-api logs-processor down docker-clean health shell restart restart-api restart-web restart-processor build rebuild status ps
 
 DOCKER_IMAGE=videogrinder-processor
 ENV ?= $(word 2,$(MAKECMDGOALS))
@@ -55,6 +55,7 @@ help: ## Show this help message
 	@echo ''
 	@echo 'Quality Checks:'
 	@echo '  make check        # Run all quality checks (format + lint + test)'
+	@echo '  make check-full   # Run quality checks + health check (like CI pipeline)'
 	@echo '  make fmt          # Format code (Go + JS)'
 	@echo '  make lint         # Lint code (Go + JS)'
 	@echo '  make test         # Run all Go tests'
@@ -182,6 +183,24 @@ fmt-js: ## Format JavaScript code
 
 check: fmt-check lint test test-js ## Run all quality checks
 
+check-full: check ## Run all quality checks + health check (like CI pipeline)
+	@echo "🏥 Running health check (Step 5 from CI pipeline)..."
+	@echo "🚀 Starting services for health check..."
+	$(COMPOSE_CMD) --profile $(PROFILE) up -d --build $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+	@echo "⏳ Waiting for services to start..."
+	@sleep 5
+	@echo "🔍 Running health checks..."
+	@if ! timeout 60s bash -c 'until make health; do sleep 2; done'; then \
+		echo "❌ Health check failed. Showing service logs..."; \
+		make logs-tail; \
+		make down; \
+		exit 1; \
+	fi
+	@echo "✅ Health check passed!"
+	@echo "🧹 Stopping services..."
+	$(COMPOSE_CMD) stop $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+	@echo "✅ Full check completed successfully!"
+
 health: ## Check application health (usage: make health [dev|prod])
 	@echo "🏥 Checking application health..."
 	@echo "🌐 Checking Web Service (port 8080)..."
@@ -218,17 +237,9 @@ logs-tail: ## Show last 50 lines of all services logs (usage: make logs-tail [de
 	@echo "📋 Showing last 50 lines of all services logs..."
 	$(COMPOSE_CMD) $(LOGS_TAIL_CMD) $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
 
-logs-tail: ## Show last 50 lines of all services logs (usage: make logs-tail [dev|prod])
-	@echo "📋 Showing last 50 lines of all services logs..."
-	$(COMPOSE_CMD) logs --tail=50 $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
-
 logs-web: ## View Web service logs (usage: make logs-web [dev|prod])
 	@echo "📋 Showing Web service logs..."
 	$(COMPOSE_CMD) $(LOGS_FOLLOW_CMD) $(WEB_SERVICE)
-
-logs-web-tail: ## Show last 30 lines of Web service logs (usage: make logs-web-tail [dev|prod])
-	@echo "📋 Showing last 30 lines of Web service logs..."
-	$(COMPOSE_CMD) logs --tail=30 $(WEB_SERVICE)
 
 logs-web-tail: ## Show last 30 lines of Web service logs (usage: make logs-web-tail [dev|prod])
 	@echo "📋 Showing last 30 lines of Web service logs..."
@@ -242,10 +253,6 @@ logs-api-tail: ## Show last 30 lines of API service logs (usage: make logs-api-t
 	@echo "📋 Showing last 30 lines of API service logs..."
 	$(COMPOSE_CMD) logs --tail=30 $(API_SERVICE)
 
-logs-api-tail: ## Show last 30 lines of API service logs (usage: make logs-api-tail [dev|prod])
-	@echo "📋 Showing last 30 lines of API service logs..."
-	$(COMPOSE_CMD) logs --tail=30 $(API_SERVICE)
-
 logs-processor: ## View processor service logs (usage: make logs-processor [dev|prod])
 	@echo "📋 Showing processor service logs..."
 	$(COMPOSE_CMD) $(LOGS_FOLLOW_CMD) $(PROCESSOR_SERVICE)
@@ -254,16 +261,14 @@ logs-processor-tail: ## Show last 30 lines of processor service logs (usage: mak
 	@echo "📋 Showing last 30 lines of processor service logs..."
 	$(COMPOSE_CMD) logs --tail=30 $(PROCESSOR_SERVICE)
 
-logs-processor-tail: ## Show last 30 lines of processor service logs (usage: make logs-processor-tail [dev|prod])
-	@echo "📋 Showing last 30 lines of processor service logs..."
-	$(COMPOSE_CMD) logs --tail=30 $(PROCESSOR_SERVICE)
-
 down: ## Stop services (usage: make down [dev|prod|all])
 	@echo "🐳 Stopping $(ENV) services..."
 ifeq ($(ENV),all)
-	$(COMPOSE_CMD) down
+	$(COMPOSE_CMD) --profile dev down --volumes --remove-orphans
+	$(COMPOSE_CMD) --profile prod down --volumes --remove-orphans
+	$(COMPOSE_CMD) down --volumes --remove-orphans
 else
-	$(COMPOSE_CMD) stop $(WEB_SERVICE) $(API_SERVICE) $(PROCESSOR_SERVICE)
+	$(COMPOSE_CMD) --profile $(PROFILE) down --volumes --remove-orphans
 endif
 
 docker-clean: ## Clean Docker resources

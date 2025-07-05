@@ -2,9 +2,7 @@ name: 🔍 VideoGrinder CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   DOCKER_BUILDKIT: 1
@@ -16,35 +14,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
 
-    - name: 🐳 Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: 🔧 Install Docker Compose
-      run: |
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.37.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
+      - name: 🔧 Install Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.37.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
 
-    - name: 📁 Create required directories
-      run: mkdir -p uploads outputs temp tmp
+      - name: 📁 Create required directories
+        run: mkdir -p uploads outputs temp tmp
 
-    - name: ✨ Step 1 - Check Code Formatting
-      run: |
-        echo "🎨 Checking code formatting..."
-        make fmt-check
+      - name: ✨ Step 1 - Check Code Formatting
+        run: |
+          echo "🎨 Checking code formatting..."
+          make fmt-check
 
-    - name: 🔍 Step 2 - Check Code Quality (Lint)
-      run: |
-        echo "🔍 Running linters..."
-        make lint
+      - name: 🔍 Step 2 - Check Code Quality (Lint)
+        run: |
+          echo "🔍 Running linters..."
+          make lint
 
-    - name: 🧪 Step 3 - Run Unit Tests
-      run: |
-        echo "🧪 Running unit tests..."
-        make test
-        make test-js
+      - name: 🧪 Step 3 - Run Unit Tests
+        run: |
+          echo "🧪 Running unit tests..."
+          make test
+          make test-js
 
   build-and-health:
     name: 🏗️ Build & Health Check
@@ -52,36 +50,38 @@ jobs:
     needs: quality-checks
 
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
 
-    - name: 🐳 Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: 🔧 Install Docker Compose
-      run: |
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.37.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
+      - name: 🔧 Install Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.37.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
 
-    - name: 📁 Create required directories
-      run: mkdir -p uploads outputs temp tmp
+      - name: 📁 Create required directories
+        run: mkdir -p uploads outputs temp tmp
 
-    - name: 🏗️ Step 4 - Build Production Images
-      run: |
-        echo "🏗️ Building all 3 services (Web + API + Processor)..."
-        make setup prod
+      - name: 🏗️ Step 4 - Build Production Images
+        run: |
+          echo "🏗️ Building all 3 services (Web + API + Processor)..."
+          make setup prod
+          - name: 🚀 Step 5 - Health Check Services
+            run: |
+              echo "🧹 Cleaning up any existing containers..."
+              make down all
 
-    - name: 🚀 Step 5 - Health Check Services
-      run: |
-        make run prod &
-        sleep 5
-        if ! timeout 60s bash -c 'until make health; do sleep 2; done'; then
-          echo "❌ Health check failed. Showing service logs..."
-          make logs-tail prod
-          make down prod
-          exit 1
-        fi
-        make down prod
+              make run prod &
+          sleep 5
+          if ! timeout 60s bash -c 'until make health; do sleep 2; done'; then
+            echo "❌ Health check failed. Showing service logs..."
+            make logs-tail prod
+            make down all
+            exit 1
+          fi
+          make down all
 
   pipeline-summary:
     name: 📋 Pipeline Summary
@@ -90,28 +90,27 @@ jobs:
     if: always()
 
     steps:
-    - name: 📊 Pipeline Summary
-      run: |
-        echo "## 🔍 VideoGrinder CI/CD Pipeline Results" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+      - name: 📊 Pipeline Summary
+        run: |
+          echo "## 🔍 VideoGrinder CI/CD Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-        if [ "${{ needs.quality-checks.result }}" = "success" ]; then
-          echo "✅ **Code Quality Checks**: PASSED" >> $GITHUB_STEP_SUMMARY
-          echo "  - Step 1: Code formatting ✅" >> $GITHUB_STEP_SUMMARY
-          echo "  - Step 2: Linting (Go + JS) ✅" >> $GITHUB_STEP_SUMMARY
-          echo "  - Step 3: Unit tests ✅" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ **Code Quality Checks**: FAILED" >> $GITHUB_STEP_SUMMARY
-        fi
+          if [ "${{ needs.quality-checks.result }}" = "success" ]; then
+            echo "✅ **Code Quality Checks**: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "  - Step 1: Code formatting ✅" >> $GITHUB_STEP_SUMMARY
+            echo "  - Step 2: Linting (Go + JS) ✅" >> $GITHUB_STEP_SUMMARY
+            echo "  - Step 3: Unit tests ✅" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Code Quality Checks**: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
 
-        if [ "${{ needs.build-and-health.result }}" = "success" ]; then
-          echo "✅ **Build & Health Check**: PASSED" >> $GITHUB_STEP_SUMMARY
-          echo "  - Step 4: Production build ✅" >> $GITHUB_STEP_SUMMARY
-          echo "  - Step 5: Health check ✅" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ **Build & Health Check**: FAILED" >> $GITHUB_STEP_SUMMARY
-        fi
+          if [ "${{ needs.build-and-health.result }}" = "success" ]; then
+            echo "✅ **Build & Health Check**: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "  - Step 4: Production build ✅" >> $GITHUB_STEP_SUMMARY
+            echo "  - Step 5: Health check ✅" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Build & Health Check**: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
 
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "🚀 **Pipeline Status**: ${{ needs.quality-checks.result == 'success' && needs.build-and-health.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
-
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🚀 **Pipeline Status**: ${{ needs.quality-checks.result == 'success' && needs.build-and-health.result == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY

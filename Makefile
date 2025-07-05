@@ -76,6 +76,13 @@ help: ## Show this help message
 	@echo '  make logs-api     # View API service logs (usage: make logs-api [dev|prod])'
 	@echo '  make logs-processor # View processor service logs (usage: make logs-processor [dev|prod])'
 	@echo ''
+	@echo 'LocalStack (AWS Development):'
+	@echo '  make localstack-start # Start LocalStack services'
+	@echo '  make localstack-stop  # Stop LocalStack services'
+	@echo '  make localstack-init  # Initialize LocalStack resources'
+	@echo '  make localstack-status # Check LocalStack status'
+	@echo '  make localstack-logs  # View LocalStack logs'
+	@echo ''
 	@echo 'Maintenance:'
 	@echo '  make docker-clean # Clean Docker resources'
 
@@ -285,7 +292,7 @@ docker-clean: ## Clean Docker resources
 	@echo "📦 Stopping and removing compose resources..."
 	$(COMPOSE_CMD) down --volumes --rmi all || true
 	@echo "🗑️  Removing project-specific volumes..."
-	docker volume rm videogrinder-processor_videogrinder-uploads videogrinder-processor_videogrinder-outputs videogrinder-processor_videogrinder-temp videogrinder-processor_air-tmp 2>/dev/null || true
+	docker volume rm videogrinder-processor_videogrinder-uploads videogrinder-processor_videogrinder-outputs videogrinder-processor_videogrinder-temp videogrinder-processor_air-tmp videogrinder-processor_localstack-data 2>/dev/null || true
 	@echo "🧽 Cleaning unused Docker resources..."
 	docker system prune -f || true
 	docker volume prune -f || true
@@ -335,3 +342,55 @@ status: ## Show services status
 ps: ## Show running containers
 	@echo "🐳 Running Containers:"
 	docker ps --filter "name=videogrinder" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# LocalStack commands
+localstack-start: ## Start LocalStack services
+	@echo "🚀 Starting LocalStack..."
+	$(COMPOSE_CMD) --profile localstack up -d localstack
+	@echo "⏳ Waiting for LocalStack to be ready..."
+	@sleep 10
+	@echo "✅ LocalStack started! Available at http://localhost:4566"
+
+localstack-stop: ## Stop LocalStack services
+	@echo "🛑 Stopping LocalStack..."
+	$(COMPOSE_CMD) stop localstack
+	@echo "✅ LocalStack stopped"
+
+localstack-init: ## Initialize LocalStack resources (S3, DynamoDB, SQS)
+	@echo "🔧 Initializing LocalStack resources..."
+	@if ! docker ps --filter "name=localstack" --format "table {{.Names}}" | grep -q localstack; then \
+		echo "❌ LocalStack is not running. Starting it first..."; \
+		make localstack-start; \
+	fi
+	@echo "📦 Running initialization script..."
+	./localstack-init.sh
+	@echo "✅ LocalStack resources initialized!"
+
+localstack-status: ## Check LocalStack status and resources
+	@echo "📊 LocalStack Status:"
+	@if docker ps --filter "name=localstack" --format "table {{.Names}}" | grep -q localstack; then \
+		echo "✅ LocalStack container: running"; \
+		echo "🔗 Health check:"; \
+		curl -s http://localhost:4566/health | jq . 2>/dev/null || curl -s http://localhost:4566/health; \
+		echo ""; \
+		echo "📦 S3 Buckets:"; \
+		AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws s3 ls --endpoint-url=http://localhost:4566 2>/dev/null || echo "  No buckets found"; \
+		echo "🗃️ DynamoDB Tables:"; \
+		AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws dynamodb list-tables --endpoint-url=http://localhost:4566 --output text --query 'TableNames[*]' 2>/dev/null | tr '\t' '\n' | sed 's/^/  /' || echo "  No tables found"; \
+		echo "📬 SQS Queues:"; \
+		AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws sqs list-queues --endpoint-url=http://localhost:4566 --output text --query 'QueueUrls[*]' 2>/dev/null | sed 's|.*/||' | sed 's/^/  /' || echo "  No queues found"; \
+	else \
+		echo "❌ LocalStack container: not running"; \
+		echo "💡 Run 'make localstack-start' to start LocalStack"; \
+	fi
+
+localstack-logs: ## View LocalStack logs
+	@echo "📋 LocalStack Logs:"
+	$(COMPOSE_CMD) logs localstack
+
+localstack-reset: ## Reset LocalStack (stop, remove data, start fresh)
+	@echo "🔄 Resetting LocalStack..."
+	$(COMPOSE_CMD) stop localstack
+	$(COMPOSE_CMD) rm -f localstack
+	docker volume rm videogrinder-processor_localstack-data 2>/dev/null || true
+	@echo "✅ LocalStack reset completed. Run 'make localstack-start' to start fresh."

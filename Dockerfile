@@ -6,7 +6,16 @@ RUN apk add --no-cache \
     make \
     bash \
     nodejs \
-    npm
+    npm \
+    libstdc++ \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    xvfb
 
 # Install Go tools
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1 && \

@@ -23,8 +23,8 @@ NPM_INSTALL_CMD = cd web && npm install
 NPM_TEST_CMD = cd web && npm run test
 NPM_TEST_WATCH_CMD = cd web && npm run test:watch
 NPM_TEST_COVERAGE_CMD = cd web && npm run test:coverage
-NPM_TEST_E2E_CMD = cd web && npm run test:e2e
-NPM_TEST_E2E_DEV_CMD = cd web && npm run test:e2e:dev
+NPM_TEST_E2E_CMD = cd web && npx cypress install && npm run test:e2e
+NPM_TEST_E2E_DEV_CMD = cd web && npx cypress install && npm run test:e2e:dev
 NPM_LINT_CMD = cd web && npm run lint:js
 NPM_LINT_FIX_CMD = cd web && npm run lint:js:fix
 LOGS_TAIL_CMD = logs --tail=50
@@ -147,6 +147,17 @@ test-e2e: ## Run e2e tests (requires app running)
 test-e2e-open: ## Open Cypress interactive mode
 	@echo "🎭 Opening Cypress..."
 	$(TOOLS_CMD) "$(NPM_TEST_E2E_DEV_CMD)"
+
+test-e2e-local: ## Run e2e tests locally (outside container)
+	@echo "🎭 Running e2e tests locally..."
+	@echo "⚠️  Make sure the app is running with 'make run' in another terminal"
+	@echo "⚠️  Make sure you have Node.js and npm installed locally"
+	cd web && npm run test:e2e
+
+test-e2e-open-local: ## Open Cypress interactive mode locally (outside container)
+	@echo "🎭 Opening Cypress locally..."
+	@echo "⚠️  Make sure you have Node.js and npm installed locally"
+	cd web && npm run test:e2e:dev
 
 lint: ## Check code quality (Go + JS)
 	@echo "🔍 Running Go linters..."

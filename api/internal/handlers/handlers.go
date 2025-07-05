@@ -16,6 +16,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	StatusHealthy   = "healthy"
+	StatusUnhealthy = "unhealthy"
+)
+
 type APIHandlers struct {
 	processorClient clients.ProcessorClientInterface
 	config          *config.APIConfig
@@ -30,7 +35,7 @@ func NewAPIHandlers(cfg *config.APIConfig) *APIHandlers {
 
 func (ah *APIHandlers) GetAPIHealth(c *gin.Context) {
 	health := gin.H{
-		"status":    "healthy",
+		"status":    StatusHealthy,
 		"service":   "videogrinder-api",
 		"timestamp": time.Now().Unix(),
 		"version":   "1.0.0",
@@ -45,8 +50,12 @@ func (ah *APIHandlers) GetAPIHealth(c *gin.Context) {
 	procCheck := health["checks"].(gin.H)["processor"].(gin.H)
 	s3Check := health["checks"].(gin.H)["s3"].(gin.H)
 
-	if dirCheck["status"] != "healthy" || procCheck["status"] != "healthy" || s3Check["status"] != "healthy" {
-		health["status"] = "unhealthy"
+	// S3 can be "disabled" and still be considered healthy for overall system health
+	s3Status := s3Check["status"].(string)
+	s3Healthy := s3Status == StatusHealthy || s3Status == "disabled"
+
+	if dirCheck["status"] != StatusHealthy || procCheck["status"] != StatusHealthy || !s3Healthy {
+		health["status"] = StatusUnhealthy
 		c.JSON(http.StatusServiceUnavailable, health)
 		return
 	}
@@ -90,14 +99,14 @@ func (ah *APIHandlers) checkDirectories() gin.H {
 				log.Printf("Warning: Failed to remove test file %s: %v", testFile, err)
 			}
 			details[dirName] = gin.H{
-				"status": "healthy",
+				"status": StatusHealthy,
 				"path":   dir,
 			}
 		}
 	}
 
 	return gin.H{
-		"status":  map[bool]string{true: "healthy", false: "unhealthy"}[allHealthy],
+		"status":  map[bool]string{true: StatusHealthy, false: StatusUnhealthy}[allHealthy],
 		"details": details,
 	}
 }
@@ -109,7 +118,7 @@ func (ah *APIHandlers) checkProcessorConnectivity() gin.H {
 
 	if err != nil {
 		return gin.H{
-			"status":     "unhealthy",
+			"status":     StatusUnhealthy,
 			"url":        ah.config.ProcessorURL,
 			"error":      err.Error(),
 			"latency_ms": latency.Milliseconds(),
@@ -118,7 +127,7 @@ func (ah *APIHandlers) checkProcessorConnectivity() gin.H {
 	}
 
 	return gin.H{
-		"status":     "healthy",
+		"status":     StatusHealthy,
 		"url":        ah.config.ProcessorURL,
 		"latency_ms": latency.Milliseconds(),
 		"last_check": time.Now().Unix(),
@@ -139,7 +148,7 @@ func (ah *APIHandlers) checkS3Connectivity() gin.H {
 
 	if err != nil {
 		return gin.H{
-			"status":     "unhealthy",
+			"status":     StatusUnhealthy,
 			"error":      err.Error(),
 			"latency_ms": latency.Milliseconds(),
 			"last_check": time.Now().Unix(),
@@ -148,7 +157,7 @@ func (ah *APIHandlers) checkS3Connectivity() gin.H {
 	}
 
 	return gin.H{
-		"status":     "healthy",
+		"status":     StatusHealthy,
 		"latency_ms": latency.Milliseconds(),
 		"last_check": time.Now().Unix(),
 		"endpoint":   ah.config.AWSConfig.GetS3Endpoint(),

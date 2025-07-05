@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	baseConfig "video-processor/internal/config"
 )
@@ -25,9 +26,7 @@ func New() *APIConfig {
 
 	s3Service, err := baseConfig.NewS3Service(awsConfig)
 	if err != nil {
-		// Log error but don't fail - fallback to filesystem
-		// This allows development without S3 if needed
-		s3Service = nil
+		panic(fmt.Sprintf("Failed to initialize S3 service: %v", err))
 	}
 
 	return &APIConfig{
@@ -41,8 +40,4 @@ func New() *APIConfig {
 
 func (c *APIConfig) CreateDirectories() {
 	c.DirectoryConfig.CreateDirectories()
-}
-
-func (c *APIConfig) IsS3Enabled() bool {
-	return c.S3Service != nil
 }

@@ -108,14 +108,6 @@ func (vs *VideoService) extractFrames(videoPath, tempDir string) ([]string, erro
 func (vs *VideoService) createFramesZip(frames []string, timestamp string) (string, error) {
 	zipFilename := fmt.Sprintf("frames_%s.zip", timestamp)
 
-	if vs.config.IsS3Enabled() {
-		return vs.createFramesZipToS3(frames, zipFilename)
-	} else {
-		return vs.createFramesZipToFilesystem(frames, zipFilename)
-	}
-}
-
-func (vs *VideoService) createFramesZipToS3(frames []string, zipFilename string) (string, error) {
 	// Create ZIP in memory using bytes.Buffer
 	var zipBuffer bytes.Buffer
 	zipWriter := zip.NewWriter(&zipBuffer)
@@ -136,52 +128,11 @@ func (vs *VideoService) createFramesZipToS3(frames []string, zipFilename string)
 	// Upload ZIP to S3
 	reader := bytes.NewReader(zipBuffer.Bytes())
 	if err := vs.config.S3Service.UploadFile(vs.config.S3Buckets.OutputsBucket, zipFilename, reader); err != nil {
-		return "", fmt.Errorf("erro ao fazer upload do ZIP para S3: %w", err)
+		return "", fmt.Errorf("erro ao salvar ZIP no S3: %w", err)
 	}
 
-	fmt.Printf("✅ ZIP salvo no S3: s3://%s/%s\n", vs.config.S3Buckets.OutputsBucket, zipFilename)
+	log.Printf("ZIP file uploaded to S3: %s", zipFilename)
 	return zipFilename, nil
-}
-
-func (vs *VideoService) createFramesZipToFilesystem(frames []string, zipFilename string) (string, error) {
-	zipPath := filepath.Join(vs.config.OutputsDir, zipFilename)
-
-	if err := utils.ValidateOutputPath(zipPath, vs.config.OutputsDir); err != nil {
-		return "", err
-	}
-
-	if err := vs.createZipFile(frames, zipPath); err != nil {
-		return "", fmt.Errorf("erro ao criar arquivo ZIP: %w", err)
-	}
-
-	return zipPath, nil
-}
-
-func (vs *VideoService) createZipFile(files []string, zipPath string) error {
-	zipFile, err := os.Create(filepath.Clean(zipPath))
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := zipFile.Close(); err != nil {
-			log.Printf("Warning: Failed to close ZIP file: %v", err)
-		}
-	}()
-
-	zipWriter := zip.NewWriter(zipFile)
-	defer func() {
-		if err := zipWriter.Close(); err != nil {
-			log.Printf("Warning: Failed to close ZIP writer: %v", err)
-		}
-	}()
-
-	for _, file := range files {
-		if err := vs.addFileToZip(zipWriter, file); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (vs *VideoService) addFileToZip(zipWriter *zip.Writer, filename string) error {

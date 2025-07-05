@@ -30,7 +30,8 @@ RUN apk add --no-cache \
     git \
     make \
     bash \
-    ca-certificates
+    ca-certificates \
+    curl
 
 RUN go install github.com/cosmtrek/air@v1.49.0
 
@@ -83,7 +84,8 @@ RUN apk add --no-cache \
     ffmpeg \
     ca-certificates \
     tzdata \
-    wget && \
+    wget \
+    curl && \
     addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 

@@ -1,8 +1,7 @@
-FROM alpine:3.18 AS tools
+FROM golang:1.21-alpine AS tools
 
 # Install only essential packages for development tools
 RUN apk add --no-cache \
-    go \
     git \
     make \
     bash \

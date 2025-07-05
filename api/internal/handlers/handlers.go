@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -170,6 +171,47 @@ func (ah *APIHandlers) CreateVideo(c *gin.Context) {
 }
 
 func (ah *APIHandlers) GetVideos(c *gin.Context) {
+	if ah.config.IsS3Enabled() {
+		ah.getVideosFromS3(c)
+	} else {
+		ah.getVideosFromFilesystem(c)
+	}
+}
+
+func (ah *APIHandlers) getVideosFromS3(c *gin.Context) {
+	files, err := ah.config.S3Service.ListFiles(ah.config.S3Buckets.OutputsBucket, "")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao listar arquivos do S3: " + err.Error()})
+		return
+	}
+
+	results := make([]map[string]interface{}, 0, len(files))
+	for _, file := range files {
+		if !strings.HasSuffix(file, ".zip") {
+			continue
+		}
+
+		info, err := ah.config.S3Service.GetFileInfo(ah.config.S3Buckets.OutputsBucket, file)
+		if err != nil {
+			log.Printf("Warning: Failed to get file info for %s: %v", file, err)
+			continue
+		}
+
+		results = append(results, map[string]interface{}{
+			"filename":     filepath.Base(file),
+			"size":         *info.ContentLength,
+			"created_at":   info.LastModified.Format("2006-01-02 15:04:05"),
+			"download_url": "/api/v1/videos/" + filepath.Base(file) + "/download",
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"videos": results,
+		"total":  len(results),
+	})
+}
+
+func (ah *APIHandlers) getVideosFromFilesystem(c *gin.Context) {
 	files, err := filepath.Glob(filepath.Join(ah.config.OutputsDir, "*.zip"))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao listar arquivos"})
@@ -199,6 +241,48 @@ func (ah *APIHandlers) GetVideos(c *gin.Context) {
 
 func (ah *APIHandlers) GetVideoDownload(c *gin.Context) {
 	filename := c.Param("filename")
+
+	if ah.config.IsS3Enabled() {
+		ah.downloadVideoFromS3(c, filename)
+	} else {
+		ah.downloadVideoFromFilesystem(c, filename)
+	}
+}
+
+func (ah *APIHandlers) downloadVideoFromS3(c *gin.Context, filename string) {
+	exists, err := ah.config.S3Service.FileExists(ah.config.S3Buckets.OutputsBucket, filename)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao verificar arquivo no S3: " + err.Error()})
+		return
+	}
+
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Arquivo não encontrado"})
+		return
+	}
+
+	reader, err := ah.config.S3Service.DownloadFile(ah.config.S3Buckets.OutputsBucket, filename)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao baixar arquivo do S3: " + err.Error()})
+		return
+	}
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Printf("Warning: Failed to close S3 reader: %v", err)
+		}
+	}()
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Type", "application/zip")
+
+	if _, err := io.Copy(c.Writer, reader); err != nil {
+		log.Printf("Error streaming file from S3: %v", err)
+	}
+}
+
+func (ah *APIHandlers) downloadVideoFromFilesystem(c *gin.Context, filename string) {
 	filePath := filepath.Join(ah.config.OutputsDir, filename)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
@@ -216,6 +300,35 @@ func (ah *APIHandlers) GetVideoDownload(c *gin.Context) {
 
 func (ah *APIHandlers) DeleteVideo(c *gin.Context) {
 	filename := c.Param("filename")
+
+	if ah.config.IsS3Enabled() {
+		ah.deleteVideoFromS3(c, filename)
+	} else {
+		ah.deleteVideoFromFilesystem(c, filename)
+	}
+}
+
+func (ah *APIHandlers) deleteVideoFromS3(c *gin.Context, filename string) {
+	exists, err := ah.config.S3Service.FileExists(ah.config.S3Buckets.OutputsBucket, filename)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao verificar arquivo no S3: " + err.Error()})
+		return
+	}
+
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Arquivo não encontrado"})
+		return
+	}
+
+	if err := ah.config.S3Service.DeleteFile(ah.config.S3Buckets.OutputsBucket, filename); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao deletar arquivo do S3: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
+}
+
+func (ah *APIHandlers) deleteVideoFromFilesystem(c *gin.Context, filename string) {
 	filePath := filepath.Join(ah.config.OutputsDir, filename)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {

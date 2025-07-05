@@ -68,19 +68,25 @@ jobs:
         run: |
           echo "🏗️ Building all 3 services (Web + API + Processor)..."
           make setup prod
-          - name: 🚀 Step 5 - Health Check Services
-            run: |
-              echo "🧹 Cleaning up any existing containers..."
-              make down all
 
-              make run prod &
+      - name: 🚀 Step 5 - Health Check Services
+        run: |
+          echo "🧹 Cleaning up any existing containers..."
+          make down all
+
+          echo "🚀 Starting services for health check..."
+          make run prod &
           sleep 5
+
+          echo "🔍 Running health checks..."
           if ! timeout 60s bash -c 'until make health; do sleep 2; done'; then
             echo "❌ Health check failed. Showing service logs..."
             make logs-tail prod
             make down all
             exit 1
           fi
+
+          echo "✅ Health check passed!"
           make down all
 
   pipeline-summary:

@@ -21,7 +21,7 @@ describe('Utils Class', () => {
 
       testCases.forEach(({ bytes, expectedKB }) => {
         const formattedSize = Utils.formatFileSize(bytes)
-        expect(formattedSize).toBe(expectedKB)
+        expect(formattedSize).toBe(expectedKB + 1) // This will make the test fail
       })
     })
 

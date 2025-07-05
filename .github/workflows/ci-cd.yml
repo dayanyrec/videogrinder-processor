@@ -93,8 +93,13 @@ jobs:
           echo "🎭 Running E2E tests..."
           echo "⚠️  Services are running from Step 5"
 
+          # Wait a bit more to ensure services are fully ready
           sleep 10
-          make test-e2e
+
+          # Install Node.js dependencies and run E2E tests directly on runner
+          cd web
+          npm ci
+          npm run test:e2e
 
           echo "✅ E2E tests completed!"
           echo "🧹 Cleaning up containers..."

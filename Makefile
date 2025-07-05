@@ -349,7 +349,7 @@ localstack-start: ## Start LocalStack services
 	$(COMPOSE_CMD) --profile localstack up -d localstack
 	@echo "⏳ Waiting for LocalStack to be ready..."
 	@sleep 10
-	@echo "✅ LocalStack started! Available at http://localhost:4566"
+	@echo "✅ LocalStack started! Available at http://127.0.0.1:4566"
 
 localstack-stop: ## Stop LocalStack services
 	@echo "🛑 Stopping LocalStack..."
@@ -371,14 +371,14 @@ localstack-status: ## Check LocalStack status and resources
 	@if docker ps --filter "name=localstack" --format "table {{.Names}}" | grep -q localstack; then \
 		echo "✅ LocalStack container: running"; \
 		echo "🔗 Health check:"; \
-		curl -s http://localhost:4566/health | jq . 2>/dev/null || curl -s http://localhost:4566/health; \
+		curl -s http://127.0.0.1:4566/health | jq . 2>/dev/null || curl -s http://127.0.0.1:4566/health; \
 		echo ""; \
 		echo "📦 S3 Buckets:"; \
-		AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws s3 ls --endpoint-url=http://localhost:4566 2>/dev/null || echo "  No buckets found"; \
+		AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws s3 ls --endpoint-url=http://127.0.0.1:4566 2>/dev/null || echo "  No buckets found"; \
 		echo "🗃️ DynamoDB Tables:"; \
-		AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws dynamodb list-tables --endpoint-url=http://localhost:4566 --output text --query 'TableNames[*]' 2>/dev/null | tr '\t' '\n' | sed 's/^/  /' || echo "  No tables found"; \
+		AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws dynamodb list-tables --endpoint-url=http://127.0.0.1:4566 --output text --query 'TableNames[*]' 2>/dev/null | tr '\t' '\n' | sed 's/^/  /' || echo "  No tables found"; \
 		echo "📬 SQS Queues:"; \
-		AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws sqs list-queues --endpoint-url=http://localhost:4566 --output text --query 'QueueUrls[*]' 2>/dev/null | sed 's|.*/||' | sed 's/^/  /' || echo "  No queues found"; \
+		AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 aws sqs list-queues --endpoint-url=http://127.0.0.1:4566 --output text --query 'QueueUrls[*]' 2>/dev/null | sed 's|.*/||' | sed 's/^/  /' || echo "  No queues found"; \
 	else \
 		echo "❌ LocalStack container: not running"; \
 		echo "💡 Run 'make localstack-start' to start LocalStack"; \

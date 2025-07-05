@@ -274,8 +274,11 @@ make logs-processor # Logs apenas do Processor
 - **Comunicação**: HTTP entre serviços com timeout de 5 minutos
 - **Taxa de extração**: 1 frame por segundo (fps=1)  
 - **Formatos suportados**: MP4, AVI, MOV, MKV, WMV, FLV, WebM
+- **Armazenamento**: S3 (uploads e outputs) + filesystem local (temporário)
 
 ### Variáveis de Ambiente
+
+#### Desenvolvimento (LocalStack)
 ```bash
 # Web Service (Porta 8080)
 export PORT=8080
@@ -288,13 +291,22 @@ export PROCESSOR_URL=http://localhost:8082
 # Processor Service (Porta 8082)
 export PORT=8082
 
+# Configuração AWS (desenvolvimento com LocalStack)
+export AWS_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+export AWS_ENDPOINT_URL=http://localstack:4566
+
 # Configuração de diretórios (compartilhada)
 export UPLOADS_DIR=./uploads
 export OUTPUTS_DIR=./outputs
 export TEMP_DIR=./temp
 ```
 
-> ⚠️ **Nota**: Configurações adicionais via variáveis de ambiente serão implementadas na Fase 1.4 conforme nosso [roadmap](./docs/roadmap.md).
+#### Produção (AWS Real)
+Para produção, consulte o [Guia de Deployment](./PRODUCTION.md) para configuração completa das credenciais AWS e buckets S3.
+
+> ⚠️ **Importante**: Em produção, o sistema requer credenciais AWS válidas e buckets S3 configurados. Sem essas configurações, os serviços falharão na inicialização.
 
 ## 🐛 Solução de Problemas
 
@@ -389,7 +401,7 @@ make setup          # Recriar ambiente
 - Arquivos muito grandes podem consumir bastante espaço em disco
 - O tempo de processamento é proporcional ao tamanho e duração do vídeo
 - Comunicação HTTP entre serviços adiciona latência mínima
-- Armazenamento local (será migrado para S3 na Fase 3)
+- Requer credenciais AWS válidas e buckets S3 configurados para produção
 
 ## 🎯 Melhorias com Multi-Service Architecture
 

@@ -37,6 +37,12 @@ jobs:
     name: 🏗️ Build & Health Check
     runs-on: ubuntu-latest
 
+    env:
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -46,10 +52,25 @@ jobs:
           echo "🏗️ Building all 3 services (Web + API + Processor)..."
           make setup prod
 
+      - name: Start LocalStack for Health Check
+        run: |
+          echo "🚀 Starting LocalStack for health check..."
+          make localstack-start
+
+      - name: Initialize LocalStack Resources
+        run: |
+          echo "🔧 Initializing LocalStack resources..."
+          make localstack-init
+
+      - name: Verify LocalStack Status
+        run: |
+          echo "🔍 Verifying LocalStack status..."
+          make localstack-status
+
       - name: Health Check Services
         run: |
           echo "🧹 Cleaning up any existing containers..."
-          make down all
+          make down prod
 
           echo "🚀 Starting services for health check..."
           make run prod
@@ -58,17 +79,23 @@ jobs:
           if ! timeout 60s bash -c 'until make health; do sleep 2; done'; then
             echo "❌ Health check failed. Showing service logs..."
             make logs-tail prod
-            make down all
+            make down prod
             exit 1
           fi
 
           echo "✅ Health check passed!"
           echo "🧹 Cleaning up containers..."
-          make down all
+          make down prod
 
   e2e:
     name: 🧪 E2E Tests
     runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
 
     steps:
       - uses: actions/checkout@v4
@@ -79,8 +106,24 @@ jobs:
           npm install
           cd ..
 
-      - name: Start services
+      - name: Start LocalStack
         run: |
+          echo "🚀 Starting LocalStack for E2E tests..."
+          make localstack-start
+
+      - name: Initialize LocalStack Resources
+        run: |
+          echo "🔧 Initializing LocalStack resources (S3, DynamoDB, SQS)..."
+          make localstack-init
+
+      - name: Verify LocalStack Status
+        run: |
+          echo "🔍 Verifying LocalStack status..."
+          make localstack-status
+
+      - name: Start services with LocalStack
+        run: |
+          echo "🚀 Starting services with LocalStack integration..."
           make run prod
 
       - name: Run E2E Tests
@@ -95,7 +138,7 @@ jobs:
         run: |
           echo "✅ E2E tests completed!"
           echo "🧹 Cleaning up containers..."
-          make down all
+          make down prod
 
   pipeline-summary:
     name: 📋 Pipeline Summary

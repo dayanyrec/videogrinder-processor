@@ -20,7 +20,11 @@ endif
 # Variables for common commands
 GO_TEST_CMD = GOFLAGS='-buildvcs=false' go test -v
 NPM_INSTALL_CMD = cd web && npm install
-NPM_TEST_CMD = cd web && npm test
+NPM_TEST_CMD = cd web && npm run test
+NPM_TEST_WATCH_CMD = cd web && npm run test:watch
+NPM_TEST_COVERAGE_CMD = cd web && npm run test:coverage
+NPM_TEST_E2E_CMD = cd web && npm run test:e2e
+NPM_TEST_E2E_DEV_CMD = cd web && npm run test:e2e:dev
 NPM_LINT_CMD = cd web && npm run lint:js
 NPM_LINT_FIX_CMD = cd web && npm run lint:js:fix
 LOGS_TAIL_CMD = logs --tail=50
@@ -129,22 +133,20 @@ test-js: ## Run JavaScript unit tests
 
 test-js-watch: ## Run unit tests in watch mode
 	@echo "🧪 Running unit tests in watch mode..."
-	$(TOOLS_CMD) "cd web && npm run test:watch"
+	$(TOOLS_CMD) "$(NPM_TEST_WATCH_CMD)"
 
 test-js-coverage: ## Run unit tests with coverage report
 	@echo "🧪 Running unit tests with coverage..."
-	$(TOOLS_CMD) "cd web && npm run test:coverage"
+	$(TOOLS_CMD) "$(NPM_TEST_COVERAGE_CMD)"
 
 test-e2e: ## Run e2e tests (requires app running)
 	@echo "🎭 Running e2e tests..."
 	@echo "⚠️  Make sure the app is running with 'make run' in another terminal"
-	$(TOOLS_CMD) "cd web && npm install cypress --save-dev && npx cypress install"
-	$(TOOLS_CMD) "cd web && npx cypress run"
+	$(TOOLS_CMD) "$(NPM_TEST_E2E_CMD)"
 
 test-e2e-open: ## Open Cypress interactive mode
 	@echo "🎭 Opening Cypress..."
-	$(TOOLS_CMD) "cd web && npm install cypress --save-dev && npx cypress install"
-	$(TOOLS_CMD) "cd web && npx cypress open"
+	$(TOOLS_CMD) "$(NPM_TEST_E2E_DEV_CMD)"
 
 lint: ## Check code quality (Go + JS)
 	@echo "🔍 Running Go linters..."

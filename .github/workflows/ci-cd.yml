@@ -87,6 +87,17 @@ jobs:
           fi
 
           echo "✅ Health check passed!"
+
+      - name: 🎭 Step 6 - Run E2E Tests
+        run: |
+          echo "🎭 Running E2E tests..."
+          echo "⚠️  Services are running from Step 5"
+
+          sleep 10
+          make test-e2e
+
+          echo "✅ E2E tests completed!"
+          echo "🧹 Cleaning up containers..."
           make down all
 
   pipeline-summary:
@@ -114,6 +125,7 @@ jobs:
             echo "✅ **Build & Health Check**: PASSED" >> $GITHUB_STEP_SUMMARY
             echo "  - Step 4: Production build ✅" >> $GITHUB_STEP_SUMMARY
             echo "  - Step 5: Health check ✅" >> $GITHUB_STEP_SUMMARY
+            echo "  - Step 6: E2E tests ✅" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **Build & Health Check**: FAILED" >> $GITHUB_STEP_SUMMARY
           fi

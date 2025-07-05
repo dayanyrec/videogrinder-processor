@@ -68,6 +68,8 @@ help: ## Show this help message
 	@echo '  make test         # Run all Go tests'
 	@echo '  make test-js      # Run JS tests'
 	@echo '  make health       # Check app health'
+	@echo '  make health-deps  # Check service dependencies status'
+	@echo '  make health-json  # Get health status in JSON format'
 	@echo ''
 	@echo 'Logs & Monitoring:'
 	@echo '  make logs         # View all services logs (usage: make logs [dev|prod])'
@@ -217,32 +219,80 @@ check-full: check ## Run all quality checks + health check (like CI pipeline)
 	@echo "✅ Full check completed successfully!"
 
 health: ## Check application health (usage: make health [dev|prod])
-	@echo "🏥 Checking application health..."
-	@echo "🌐 Checking Web Service (port 8080)..."
+	@echo "=== 📊 VIDEOGRINDER HEALTH STATUS ==="
+	@echo ""
+	@echo "🌐 Web Service:"
 	@if curl -s -f http://localhost:8080/health > /dev/null 2>&1; then \
-		echo "✅ Web Service: healthy"; \
+		curl -s http://localhost:8080/health | jq -r '"  Status: " + .status' 2>/dev/null || echo "  Status: healthy"; \
 	else \
-		echo "❌ Web Service: failed"; \
+		echo "  Status: ❌ FAILED"; \
 		echo "💡 Dica: rode 'make logs-tail' para ver os logs."; \
 		exit 1; \
 	fi
-	@echo "🔌 Checking API Service (port 8081)..."
+	@echo ""
+	@echo "🔗 API Service:"
 	@if curl -s -f http://localhost:8081/health > /dev/null 2>&1; then \
-		echo "✅ API Service: healthy"; \
+		curl -s http://localhost:8081/health | jq -r '"  Overall: " + .status' 2>/dev/null || echo "  Overall: healthy"; \
+		curl -s http://localhost:8081/health | jq -r '.checks | to_entries[] | "  " + (if .value.status == "healthy" then "✅" else "❌" end) + " " + .key + ": " + .value.status' 2>/dev/null || echo "  Dependencies: OK"; \
 	else \
-		echo "❌ API Service: failed"; \
+		echo "  Overall: ❌ FAILED"; \
 		echo "💡 Dica: rode 'make logs-tail' para ver os logs."; \
 		exit 1; \
 	fi
-	@echo "⚙️  Checking Processor Service (port 8082)..."
+	@echo ""
+	@echo "⚙️ Processor Service:"
 	@if curl -s -f http://localhost:8082/health > /dev/null 2>&1; then \
-		echo "✅ Processor Service: healthy"; \
+		curl -s http://localhost:8082/health | jq -r '"  Overall: " + .status' 2>/dev/null || echo "  Overall: healthy"; \
+		curl -s http://localhost:8082/health | jq -r '.checks | to_entries[] | "  " + (if .value.status == "healthy" then "✅" else "❌" end) + " " + .key + ": " + .value.status' 2>/dev/null || echo "  Dependencies: OK"; \
 	else \
-		echo "❌ Processor Service: failed"; \
+		echo "  Overall: ❌ FAILED"; \
 		echo "💡 Dica: rode 'make logs-tail' para ver os logs."; \
 		exit 1; \
 	fi
+	@echo ""
 	@echo "✅ All services are healthy!"
+
+health-deps: ## Check service dependencies status (usage: make health-deps [dev|prod])
+	@echo "=== 🔍 DEPENDENCIES STATUS ==="
+	@echo ""
+	@echo "🔗 API Dependencies:"
+	@curl -s http://localhost:8081/health | jq -r '.checks | to_entries[] | "  " + (if .value.status == "healthy" then "✅" else "❌" end) + " " + .key + ": " + .value.status' 2>/dev/null || echo "  ❌ API Service not available"
+	@echo ""
+	@echo "⚙️ Processor Dependencies:"
+	@curl -s http://localhost:8082/health | jq -r '.checks | to_entries[] | "  " + (if .value.status == "healthy" then "✅" else "❌" end) + " " + .key + ": " + .value.status' 2>/dev/null || echo "  ❌ Processor Service not available"
+	@echo ""
+
+health-json: ## Get health status in JSON format (usage: make health-json [dev|prod])
+	@echo "{"
+	@echo "  \"web\": $(shell curl -s http://localhost:8080/health 2>/dev/null || echo 'null'),"
+	@echo "  \"api\": $(shell curl -s http://localhost:8081/health 2>/dev/null || echo 'null'),"
+	@echo "  \"processor\": $(shell curl -s http://localhost:8082/health 2>/dev/null || echo 'null')"
+	@echo "}"
+
+help-health: ## Show detailed help for health commands
+	@echo "=== 🏥 HEALTH CHECK COMMANDS ==="
+	@echo ""
+	@echo "📊 make health"
+	@echo "   Complete health check of all services with detailed dependency status"
+	@echo "   Shows: Web, API, and Processor services with their dependencies"
+	@echo "   Dependencies checked:"
+	@echo "     • API: directories, processor connectivity, S3 connectivity"
+	@echo "     • Processor: directories, FFmpeg availability, S3 connectivity"
+	@echo ""
+	@echo "🔍 make health-deps"
+	@echo "   Quick check of service dependencies only"
+	@echo "   Shows only the status of each dependency without service details"
+	@echo ""
+	@echo "📄 make health-json"
+	@echo "   Get complete health status in JSON format"
+	@echo "   Useful for monitoring tools and automated scripts"
+	@echo ""
+	@echo "💡 Tips:"
+	@echo "   • Use 'make health' for human-readable status"
+	@echo "   • Use 'make health-deps' for quick dependency overview"
+	@echo "   • Use 'make health-json' for programmatic access"
+	@echo "   • All commands work with [dev|prod] environments"
+	@echo ""
 
 logs: ## View all services logs (usage: make logs [dev|prod])
 	@echo "📋 Showing all services logs..."

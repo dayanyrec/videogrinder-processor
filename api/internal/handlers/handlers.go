@@ -37,13 +37,15 @@ func (ah *APIHandlers) GetAPIHealth(c *gin.Context) {
 		"checks": gin.H{
 			"directories": ah.checkDirectories(),
 			"processor":   ah.checkProcessorConnectivity(),
+			"s3":          ah.checkS3Connectivity(),
 		},
 	}
 
 	dirCheck := health["checks"].(gin.H)["directories"].(gin.H)
 	procCheck := health["checks"].(gin.H)["processor"].(gin.H)
+	s3Check := health["checks"].(gin.H)["s3"].(gin.H)
 
-	if dirCheck["status"] != "healthy" || procCheck["status"] != "healthy" {
+	if dirCheck["status"] != "healthy" || procCheck["status"] != "healthy" || s3Check["status"] != "healthy" {
 		health["status"] = "unhealthy"
 		c.JSON(http.StatusServiceUnavailable, health)
 		return
@@ -120,6 +122,36 @@ func (ah *APIHandlers) checkProcessorConnectivity() gin.H {
 		"url":        ah.config.ProcessorURL,
 		"latency_ms": latency.Milliseconds(),
 		"last_check": time.Now().Unix(),
+	}
+}
+
+func (ah *APIHandlers) checkS3Connectivity() gin.H {
+	if !ah.config.IsS3Enabled() {
+		return gin.H{
+			"status":  "disabled",
+			"message": "S3 integration is disabled",
+		}
+	}
+
+	start := time.Now()
+	err := ah.config.AWSConfig.CheckHealth()
+	latency := time.Since(start)
+
+	if err != nil {
+		return gin.H{
+			"status":     "unhealthy",
+			"error":      err.Error(),
+			"latency_ms": latency.Milliseconds(),
+			"last_check": time.Now().Unix(),
+			"endpoint":   ah.config.AWSConfig.GetS3Endpoint(),
+		}
+	}
+
+	return gin.H{
+		"status":     "healthy",
+		"latency_ms": latency.Milliseconds(),
+		"last_check": time.Now().Unix(),
+		"endpoint":   ah.config.AWSConfig.GetS3Endpoint(),
 	}
 }
 

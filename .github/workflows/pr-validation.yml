@@ -22,17 +22,17 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: ✨ Check Code Formatting
+      - name: Check Code Formatting
         run: |
           echo "🎨 Checking code formatting..."
           make fmt-check
 
-      - name: 🔍 Check Code Quality (Lint)
+      - name: Check Code Quality (Lint)
         run: |
           echo "🔍 Running linters..."
           make lint
 
-      - name: 🧪 Run Unit Tests
+      - name: Run Unit Tests
         run: |
           echo "🧪 Running unit tests..."
           make test
@@ -46,12 +46,12 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🏗️ Build Production Images
+      - name: Build Production Images
         run: |
           echo "🏗️ Building all 3 services (Web + API + Processor)..."
           make setup prod
 
-      - name: 🚀 Health Check Services
+      - name: Health Check Services
         run: |
           echo "🧹 Cleaning up any existing containers..."
           make down all
@@ -78,17 +78,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 📥 Install dependencies
+      - name: Install dependencies
         run: |
           cd web
           npm install
           cd ..
 
-      - name: 🚀 Start services
+      - name: Start services
         run: |
           make run prod
 
-      - name: 📥 Run E2E Tests
+      - name: Run E2E Tests
         uses: cypress-io/github-action@v5
         with:
           install: false
@@ -96,7 +96,7 @@ jobs:
           wait-on: http://localhost:8080/health
           publish-summary: true
 
-      - name: 🧹 Cleaning up containers
+      - name: Clean up containers
         run: |
           echo "✅ E2E tests completed!"
           echo "🧹 Cleaning up containers..."
@@ -109,38 +109,38 @@ jobs:
     if: always()
 
     steps:
-      - name: 📊 Validation Summary
+      - name: Validation Summary
         run: |
-          echo "## 🔍 Pull Request Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "## Pull Request Validation Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ needs.code-quality.result }}" = "success" ]; then
-            echo "✅ **Code Quality**: PASSED" >> $GITHUB_STEP_SUMMARY
-            echo "  - Code formatting ✅" >> $GITHUB_STEP_SUMMARY
-            echo "  - Linting (Go + JS) ✅" >> $GITHUB_STEP_SUMMARY
-            echo "  - Unit tests ✅" >> $GITHUB_STEP_SUMMARY
+            echo "**Code Quality**: ✅ PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "- Code formatting" >> $GITHUB_STEP_SUMMARY
+            echo "- Linting (Go + JS)" >> $GITHUB_STEP_SUMMARY
+            echo "- Unit tests" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **Code Quality**: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "**Code Quality**: ❌ FAILED" >> $GITHUB_STEP_SUMMARY
           fi
 
           if [ "${{ needs.build-and-health.result }}" = "success" ]; then
-            echo "✅ **Build & Health Check**: PASSED" >> $GITHUB_STEP_SUMMARY
-            echo "  - Production build ✅" >> $GITHUB_STEP_SUMMARY
-            echo "  - Health check ✅" >> $GITHUB_STEP_SUMMARY
+            echo "**Build & Health Check**: ✅ PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "- Production build" >> $GITHUB_STEP_SUMMARY
+            echo "- Health check" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **Build & Health Check**: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "**Build & Health Check**: ❌ FAILED" >> $GITHUB_STEP_SUMMARY
           fi
 
           if [ "${{ needs.e2e.result }}" = "success" ]; then
-            echo "✅ **E2E Tests**: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "**E2E Tests**: ✅ PASSED" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **E2E Tests**: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "**E2E Tests**: ❌ FAILED" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ needs.code-quality.result }}" = "success" ] && [ "${{ needs.build-and-health.result }}" = "success" ] && [ "${{ needs.e2e.result }}" = "success" ]; then
-            echo "🚀 **Ready for merge**: ✅" >> $GITHUB_STEP_SUMMARY
+            echo "**Ready for merge**: ✅ YES" >> $GITHUB_STEP_SUMMARY
           else
-            echo "🚀 **Ready for merge**: ❌" >> $GITHUB_STEP_SUMMARY
+            echo "**Ready for merge**: ❌ NO" >> $GITHUB_STEP_SUMMARY
           fi

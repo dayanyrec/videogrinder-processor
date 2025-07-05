@@ -1,3 +1,27 @@
+FROM golang:1.21-alpine AS tools
+
+# Install only essential packages for development tools
+RUN apk add --no-cache \
+    git \
+    make \
+    bash \
+    nodejs \
+    npm
+
+# Install Go tools
+RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1 && \
+    go install golang.org/x/tools/cmd/goimports@v0.21.0
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# Install Node.js dependencies for linting
+RUN cd web && npm install
+
 FROM golang:1.21-alpine AS development
 
 RUN apk add --no-cache \

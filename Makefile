@@ -21,10 +21,13 @@ endif
 GO_TEST_CMD = GOFLAGS='-buildvcs=false' go test -v
 NPM_INSTALL_CMD = cd web && npm install
 NPM_TEST_CMD = cd web && npm test
-NPM_LINT_CMD = cd web && npx eslint . --ext .js
-NPM_LINT_FIX_CMD = cd web && npx eslint . --ext .js --fix
+NPM_LINT_CMD = cd web && npm run lint:js
+NPM_LINT_FIX_CMD = cd web && npm run lint:js:fix
 LOGS_TAIL_CMD = logs --tail=50
 LOGS_FOLLOW_CMD = logs -f
+
+# Tools service commands
+TOOLS_CMD = $(COMPOSE_CMD) --profile tools run --rm videogrinder-tools sh -c
 
 %:
 	@:
@@ -49,7 +52,7 @@ help: ## Show this help message
 	@echo '  make down         # Stop services (usage: make down [dev|prod|all])'
 	@echo ''
 	@echo 'Development:'
-	@echo '  make shell        # Open shell in web-dev container'
+	@echo '  make shell        # Open shell in tools container'
 	@echo '  make status       # Show services status'
 	@echo '  make ps           # Show running containers'
 	@echo ''
@@ -98,87 +101,79 @@ run-processor: ## Run only processor service (usage: make run-processor [dev|pro
 
 test: ## Run all Go unit tests (API + processor)
 	@echo "🧪 Running all Go unit tests..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./..." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./..."
+	$(TOOLS_CMD) "$(GO_TEST_CMD) ./..."
 
 test-api: ## Run API service unit tests
 	@echo "🧪 Running API service unit tests..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./api/internal/..." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./api/internal/..."
+	$(TOOLS_CMD) "$(GO_TEST_CMD) ./api/internal/..."
 
 test-processor: ## Run processor service unit tests
 	@echo "🧪 Running processor service unit tests..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./processor/internal/..." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./processor/internal/..."
+	$(TOOLS_CMD) "$(GO_TEST_CMD) ./processor/internal/..."
 
 test-services: ## Run services unit tests (API + processor)
 	@echo "🧪 Running services unit tests..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./internal/services/..." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./internal/services/..."
+	$(TOOLS_CMD) "$(GO_TEST_CMD) ./internal/services/..."
 
 test-utils: ## Run utils unit tests
 	@echo "🧪 Running utils unit tests..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./internal/utils/..." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./internal/utils/..."
+	$(TOOLS_CMD) "$(GO_TEST_CMD) ./internal/utils/..."
 
 test-clients: ## Run clients unit tests
 	@echo "🧪 Running clients unit tests..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./internal/clients/..." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(GO_TEST_CMD) ./internal/clients/..."
+	$(TOOLS_CMD) "$(GO_TEST_CMD) ./internal/clients/..."
 
 test-js: ## Run JavaScript unit tests
 	@echo "🧪 Running JavaScript unit tests..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_TEST_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_TEST_CMD)"
+	$(TOOLS_CMD) "$(NPM_TEST_CMD)"
 
 test-js-watch: ## Run unit tests in watch mode
 	@echo "🧪 Running unit tests in watch mode..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "cd web && npm run test:watch" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm run test:watch"
+	$(TOOLS_CMD) "cd web && npm run test:watch"
 
 test-js-coverage: ## Run unit tests with coverage report
 	@echo "🧪 Running unit tests with coverage..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "cd web && npm run test:coverage" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm run test:coverage"
+	$(TOOLS_CMD) "cd web && npm run test:coverage"
 
 test-e2e: ## Run e2e tests (requires app running)
 	@echo "🎭 Running e2e tests..."
 	@echo "⚠️  Make sure the app is running with 'make run' in another terminal"
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "cd web && npm install cypress --save-dev && npx cypress install" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install cypress --save-dev && npx cypress install"
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "cd web && npx cypress run" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx cypress run"
+	$(TOOLS_CMD) "cd web && npm install cypress --save-dev && npx cypress install"
+	$(TOOLS_CMD) "cd web && npx cypress run"
 
 test-e2e-open: ## Open Cypress interactive mode
 	@echo "🎭 Opening Cypress..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "cd web && npm install cypress --save-dev && npx cypress install" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npm install cypress --save-dev && npx cypress install"
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "cd web && npx cypress open" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "cd web && npx cypress open"
+	$(TOOLS_CMD) "cd web && npm install cypress --save-dev && npx cypress install"
+	$(TOOLS_CMD) "cd web && npx cypress open"
 
 lint: ## Check code quality (Go + JS)
 	@echo "🔍 Running Go linters..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "GOFLAGS='-buildvcs=false' golangci-lint run" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "GOFLAGS='-buildvcs=false' golangci-lint run"
+	$(TOOLS_CMD) "GOFLAGS='-buildvcs=false' golangci-lint run"
 	@echo "🔍 Running JS linters..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_LINT_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_LINT_CMD)"
+	$(TOOLS_CMD) "$(NPM_LINT_CMD)"
 
 lint-js: ## Check JavaScript code quality
 	@echo "🔍 Running JS linters..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_LINT_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_LINT_CMD)"
+	$(TOOLS_CMD) "$(NPM_LINT_CMD)"
 
 fmt: ## Format code (Go + JS)
 	@echo "🎨 Formatting Go code..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "gofmt -s -w . && goimports -w ." || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "gofmt -s -w . && goimports -w ."
+	$(TOOLS_CMD) "gofmt -s -w . && goimports -w ."
 	@echo "🎨 Formatting JS code..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_LINT_FIX_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_LINT_FIX_CMD)"
+	$(TOOLS_CMD) "$(NPM_LINT_FIX_CMD)"
 	@echo "✅ Code formatted"
 
 fmt-check: ## Check code formatting without changing files
 	@echo "🎨 Checking Go code formatting..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "test -z \"\$$(gofmt -l .)\" || (echo 'Go files not formatted:' && gofmt -l . && exit 1)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "test -z \"\$$(gofmt -l .)\" || (echo 'Go files not formatted:' && gofmt -l . && exit 1)"
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "test -z \"\$$(goimports -l .)\" || (echo 'Go imports not formatted:' && goimports -l . && exit 1)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "test -z \"\$$(goimports -l .)\" || (echo 'Go imports not formatted:' && goimports -l . && exit 1)"
+	$(TOOLS_CMD) "test -z \"\$$(gofmt -l .)\" || (echo 'Go files not formatted:' && gofmt -l . && exit 1)"
+	$(TOOLS_CMD) "test -z \"\$$(goimports -l .)\" || (echo 'Go imports not formatted:' && goimports -l . && exit 1)"
 	@echo "🎨 Checking JS code formatting..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_LINT_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_LINT_CMD)"
+	$(TOOLS_CMD) "$(NPM_LINT_CMD)"
 	@echo "✅ Code formatting is correct"
 
 fmt-js: ## Format JavaScript code
 	@echo "🎨 Formatting JS code..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_INSTALL_CMD)"
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh -c "$(NPM_LINT_FIX_CMD)" || $(COMPOSE_CMD) run --rm videogrinder-web-dev sh -c "$(NPM_LINT_FIX_CMD)"
+	$(TOOLS_CMD) "$(NPM_LINT_FIX_CMD)"
 	@echo "✅ JS code formatted"
 
 check: fmt-check lint test test-js ## Run all quality checks
@@ -266,6 +261,7 @@ down: ## Stop services (usage: make down [dev|prod|all])
 ifeq ($(ENV),all)
 	$(COMPOSE_CMD) --profile dev down --volumes --remove-orphans
 	$(COMPOSE_CMD) --profile prod down --volumes --remove-orphans
+	$(COMPOSE_CMD) --profile tools down --volumes --remove-orphans
 	$(COMPOSE_CMD) down --volumes --remove-orphans
 else
 	$(COMPOSE_CMD) --profile $(PROFILE) down --volumes --remove-orphans
@@ -285,9 +281,9 @@ docker-clean: ## Clean Docker resources
 	docker builder prune -f || true
 	@echo "✅ Docker cleanup completed!"
 
-shell: ## Open shell in web-dev container
-	@echo "🐚 Opening shell in web-dev container..."
-	$(COMPOSE_CMD) exec videogrinder-web-dev sh
+shell: ## Open shell in tools container
+	@echo "🐚 Opening shell in tools container..."
+	$(COMPOSE_CMD) --profile tools run --rm videogrinder-tools sh
 
 restart: ## Restart all services (usage: make restart [dev|prod])
 	@echo "🔄 Restarting all services in $(ENV) mode..."

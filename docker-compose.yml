@@ -1,4 +1,19 @@
 services:
+  # Tools Service - for development tools and CI/CD
+  videogrinder-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: tools
+    volumes:
+      - .:/app
+      - /app/web/node_modules
+    environment:
+      - ENV=tools
+    profiles:
+      - tools
+    command: ["sh"]
+
   # Web Service - serves the frontend
   videogrinder-web-dev:
     build:
@@ -19,7 +34,8 @@ services:
     networks:
       - videogrinder-network
     depends_on:
-      - videogrinder-api-dev
+      videogrinder-api-dev:
+        condition: service_healthy
     profiles:
       - dev
     command: ["air", "-c", ".air-web.toml"]
@@ -48,10 +64,17 @@ services:
     networks:
       - videogrinder-network
     depends_on:
-      - videogrinder-processor-dev
+      videogrinder-processor-dev:
+        condition: service_healthy
     profiles:
       - dev
     command: ["air", "-c", ".air-api.toml"]
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Processor Service - handles video processing
   videogrinder-processor-dev:
@@ -77,6 +100,12 @@ services:
     profiles:
       - dev
     command: ["air", "-c", ".air-processor.toml"]
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Production Web Service
   videogrinder-web-prod:
@@ -94,7 +123,8 @@ services:
     networks:
       - videogrinder-network
     depends_on:
-      - videogrinder-api-prod
+      videogrinder-api-prod:
+        condition: service_healthy
     profiles:
       - prod
     command: ["./web/cmd/main"]
@@ -125,7 +155,8 @@ services:
     networks:
       - videogrinder-network
     depends_on:
-      - videogrinder-processor-prod
+      videogrinder-processor-prod:
+        condition: service_healthy
     profiles:
       - prod
     command: ["./api/cmd/main"]

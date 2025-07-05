@@ -31,6 +31,7 @@ services:
       - videogrinder-network
     profiles:
       - dev
+    command: ["air", "-c", ".air-web.toml"]
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s

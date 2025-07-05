@@ -67,10 +67,15 @@ jobs:
           echo "🔧 Initializing LocalStack resources..."
           make localstack-init
 
+      - name: Verify LocalStack Status
+        run: |
+          echo "🔍 Verifying LocalStack status..."
+          make localstack-status
+
       - name: Health Check Services
         run: |
           echo "🧹 Cleaning up any existing containers..."
-          make down all
+          make down prod
 
           echo "🚀 Starting services for health check..."
           make run prod
@@ -79,13 +84,13 @@ jobs:
           if ! timeout 60s bash -c 'until make health; do sleep 2; done'; then
             echo "❌ Health check failed. Showing service logs..."
             make logs-tail prod
-            make down all
+            make down prod
             exit 1
           fi
 
           echo "✅ Health check passed!"
           echo "🧹 Cleaning up containers..."
-          make down all
+          make down prod
 
   e2e:
     name: 🔍 E2E Tests
@@ -116,6 +121,11 @@ jobs:
           echo "🔧 Initializing LocalStack resources (S3, DynamoDB, SQS)..."
           make localstack-init
 
+      - name: Verify LocalStack Status
+        run: |
+          echo "🔍 Verifying LocalStack status..."
+          make localstack-status
+
       - name: Start services with LocalStack
         run: |
           echo "🚀 Starting services with LocalStack integration..."
@@ -133,7 +143,7 @@ jobs:
         run: |
           echo "✅ E2E tests completed!"
           echo "🧹 Cleaning up containers..."
-          make down all
+          make down prod
 
   pr-summary:
     name: 📋 PR Summary

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -89,7 +90,11 @@ func (c *AWSConfig) CheckHealth() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to LocalStack: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Warning: Failed to close response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("LocalStack health check failed: status %d", resp.StatusCode)

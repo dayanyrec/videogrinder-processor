@@ -42,6 +42,12 @@ jobs:
     name: 🏗️ Build & Health Check
     runs-on: ubuntu-latest
 
+    env:
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localhost:4566
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -50,6 +56,16 @@ jobs:
         run: |
           echo "🏗️ Building all 3 services (Web + API + Processor)..."
           make setup prod
+
+      - name: Start LocalStack for Health Check
+        run: |
+          echo "🚀 Starting LocalStack for health check..."
+          make localstack-start
+
+      - name: Initialize LocalStack Resources
+        run: |
+          echo "🔧 Initializing LocalStack resources..."
+          make localstack-init
 
       - name: Health Check Services
         run: |
@@ -74,6 +90,12 @@ jobs:
   e2e:
     name: 🔍 E2E Tests
     runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localhost:4566
 
     steps:
       - uses: actions/checkout@v4

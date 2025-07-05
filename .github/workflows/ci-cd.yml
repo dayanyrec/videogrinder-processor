@@ -79,9 +79,20 @@ jobs:
           npm install
           cd ..
 
-      - name: Start services
+      - name: Start LocalStack
         run: |
-          make run prod
+          echo "🚀 Starting LocalStack for E2E tests..."
+          make localstack-start
+
+      - name: Initialize LocalStack Resources
+        run: |
+          echo "🔧 Initializing LocalStack resources (S3, DynamoDB, SQS)..."
+          make localstack-init
+
+      - name: Start services with LocalStack
+        run: |
+          echo "🚀 Starting services with LocalStack integration..."
+          make run dev
 
       - name: Run E2E Tests
         uses: cypress-io/github-action@v5

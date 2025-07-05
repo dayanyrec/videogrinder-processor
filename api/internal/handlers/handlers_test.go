@@ -63,6 +63,7 @@ func setupTestHandlers() (handlers *APIHandlers, cleanup func()) {
 			OutputsDir: outputsDir,
 			TempDir:    tempAPIDir,
 		},
+		AWSConfig: nil,
 	}
 
 	handlers = NewAPIHandlers(cfg)
@@ -575,7 +576,7 @@ func TestGetAPIHealth_ShouldReturnHealthyStatusWhenAllServicesAreOperational(t *
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 
-	assert.Equal(t, "healthy", response["status"])
+	assert.Equal(t, StatusHealthy, response["status"])
 	assert.Equal(t, "videogrinder-api", response["service"])
 	assert.NotNil(t, response["timestamp"])
 	assert.Equal(t, "1.0.0", response["version"])
@@ -585,10 +586,10 @@ func TestGetAPIHealth_ShouldReturnHealthyStatusWhenAllServicesAreOperational(t *
 	assert.NotNil(t, checks["processor"])
 
 	directories := checks["directories"].(map[string]interface{})
-	assert.Equal(t, "healthy", directories["status"])
+	assert.Equal(t, StatusHealthy, directories["status"])
 
 	processor := checks["processor"].(map[string]interface{})
-	assert.Equal(t, "healthy", processor["status"])
+	assert.Equal(t, StatusHealthy, processor["status"])
 }
 
 func TestGetAPIHealth_ShouldReturnUnhealthyStatusWhenProcessorIsDown(t *testing.T) {
@@ -617,12 +618,12 @@ func TestGetAPIHealth_ShouldReturnUnhealthyStatusWhenProcessorIsDown(t *testing.
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 
-	assert.Equal(t, "unhealthy", response["status"])
+	assert.Equal(t, StatusUnhealthy, response["status"])
 	assert.Equal(t, "videogrinder-api", response["service"])
 
 	checks := response["checks"].(map[string]interface{})
 	processor := checks["processor"].(map[string]interface{})
-	assert.Equal(t, "unhealthy", processor["status"])
+	assert.Equal(t, StatusUnhealthy, processor["status"])
 	assert.NotNil(t, processor["error"])
 	assert.NotNil(t, processor["latency_ms"])
 }
@@ -649,11 +650,11 @@ func TestGetAPIHealth_ShouldReturnUnhealthyStatusWhenDirectoriesAreMissing(t *te
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 
-	assert.Equal(t, "unhealthy", response["status"])
+	assert.Equal(t, StatusUnhealthy, response["status"])
 
 	checks := response["checks"].(map[string]interface{})
 	directories := checks["directories"].(map[string]interface{})
-	assert.Equal(t, "unhealthy", directories["status"])
+	assert.Equal(t, StatusUnhealthy, directories["status"])
 
 	details := directories["details"].(map[string]interface{})
 	uploads := details["non_existent_test_dir"].(map[string]interface{})
@@ -735,7 +736,7 @@ func TestGetAPIHealth_ShouldVerifyAllRequiredDirectories(t *testing.T) {
 	for _, dirName := range expectedDirs {
 		assert.Contains(t, details, dirName)
 		dir := details[dirName].(map[string]interface{})
-		assert.Equal(t, "healthy", dir["status"])
+		assert.Equal(t, StatusHealthy, dir["status"])
 		assert.NotNil(t, dir["path"])
 	}
 }

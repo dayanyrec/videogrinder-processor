@@ -18,6 +18,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	StatusHealthy   = "healthy"
+	StatusUnhealthy = "unhealthy"
+)
+
 type ProcessorHandlers struct {
 	videoService *services.VideoService
 	config       *config.ProcessorConfig
@@ -95,21 +100,27 @@ func (ph *ProcessorHandlers) ProcessVideoUpload(c *gin.Context) {
 
 func (ph *ProcessorHandlers) GetProcessorStatus(c *gin.Context) {
 	health := gin.H{
-		"status":    "healthy",
+		"status":    StatusHealthy,
 		"service":   "videogrinder-processor",
 		"timestamp": time.Now().Unix(),
 		"version":   "1.0.0",
 		"checks": gin.H{
 			"directories": ph.checkDirectories(),
 			"ffmpeg":      ph.checkFFmpegAvailability(),
+			"s3":          ph.checkS3Connectivity(),
 		},
 	}
 
 	dirCheck := health["checks"].(gin.H)["directories"].(gin.H)
 	ffmpegCheck := health["checks"].(gin.H)["ffmpeg"].(gin.H)
+	s3Check := health["checks"].(gin.H)["s3"].(gin.H)
 
-	if dirCheck["status"] != "healthy" || ffmpegCheck["status"] != "healthy" {
-		health["status"] = "unhealthy"
+	// S3 can be "disabled" and still be considered healthy for overall system health
+	s3Status := s3Check["status"].(string)
+	s3Healthy := s3Status == StatusHealthy || s3Status == "disabled"
+
+	if dirCheck["status"] != StatusHealthy || ffmpegCheck["status"] != StatusHealthy || !s3Healthy {
+		health["status"] = StatusUnhealthy
 		c.JSON(http.StatusServiceUnavailable, health)
 		return
 	}
@@ -153,14 +164,14 @@ func (ph *ProcessorHandlers) checkDirectories() gin.H {
 				log.Printf("Warning: Failed to remove test file %s: %v", testFile, err)
 			}
 			details[dirName] = gin.H{
-				"status": "healthy",
+				"status": StatusHealthy,
 				"path":   dir,
 			}
 		}
 	}
 
 	return gin.H{
-		"status":  map[bool]string{true: "healthy", false: "unhealthy"}[allHealthy],
+		"status":  map[bool]string{true: StatusHealthy, false: StatusUnhealthy}[allHealthy],
 		"details": details,
 	}
 }
@@ -174,7 +185,7 @@ func (ph *ProcessorHandlers) checkFFmpegAvailability() gin.H {
 
 	if err != nil {
 		return gin.H{
-			"status":     "unhealthy",
+			"status":     StatusUnhealthy,
 			"error":      "FFmpeg not available: " + err.Error(),
 			"latency_ms": latency.Milliseconds(),
 			"last_check": time.Now().Unix(),
@@ -182,9 +193,39 @@ func (ph *ProcessorHandlers) checkFFmpegAvailability() gin.H {
 	}
 
 	return gin.H{
+		"status":     StatusHealthy,
+		"latency_ms": latency.Milliseconds(),
+		"last_check": time.Now().Unix(),
+	}
+}
+
+func (ph *ProcessorHandlers) checkS3Connectivity() gin.H {
+	if !ph.config.IsS3Enabled() {
+		return gin.H{
+			"status":  "disabled",
+			"message": "S3 integration is disabled",
+		}
+	}
+
+	start := time.Now()
+	err := ph.config.AWSConfig.CheckHealth()
+	latency := time.Since(start)
+
+	if err != nil {
+		return gin.H{
+			"status":     "unhealthy",
+			"error":      err.Error(),
+			"latency_ms": latency.Milliseconds(),
+			"last_check": time.Now().Unix(),
+			"endpoint":   ph.config.AWSConfig.GetS3Endpoint(),
+		}
+	}
+
+	return gin.H{
 		"status":     "healthy",
 		"latency_ms": latency.Milliseconds(),
 		"last_check": time.Now().Unix(),
+		"endpoint":   ph.config.AWSConfig.GetS3Endpoint(),
 	}
 }
 

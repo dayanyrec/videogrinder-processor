@@ -81,7 +81,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: 📥 Checkout code
+
+      - name: 📥 Install dependencies
         run: |
           cd web
           npm install
@@ -96,7 +97,11 @@ jobs:
         uses: cypress-io/github-action@v5
         with:
           install: false
+          working-directory: web
           wait-on: http://localhost:8080/health
+          record: false
+          publish-summary: true
+          component: false
 
       - name: 🧹 Cleaning up containers
         run: |

@@ -122,7 +122,9 @@ func (vs *VideoService) createFramesZipToS3(frames []string, zipFilename string)
 
 	for _, file := range frames {
 		if err := vs.addFileToZip(zipWriter, file); err != nil {
-			zipWriter.Close()
+			if closeErr := zipWriter.Close(); closeErr != nil {
+				log.Printf("Warning: Failed to close ZIP writer: %v", closeErr)
+			}
 			return "", fmt.Errorf("erro ao adicionar arquivo ao ZIP: %w", err)
 		}
 	}

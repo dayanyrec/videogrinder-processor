@@ -49,31 +49,6 @@ func setupTestHandlers() (handlers *ProcessorHandlers, cleanup func()) {
 	return
 }
 
-func setupTestHandlersWithMissingDirs() (handlers *ProcessorHandlers, cleanup func()) {
-	tempDir := filepath.Join(os.TempDir(), "processor_test_missing")
-	uploadsDir := filepath.Join(tempDir, "uploads")
-	outputsDir := filepath.Join(tempDir, "outputs")
-	tempVideoDir := filepath.Join(tempDir, "temp")
-
-	cfg := &config.ProcessorConfig{
-		Port: "8082",
-		DirectoryConfig: &baseConfig.DirectoryConfig{
-			UploadsDir: uploadsDir,
-			OutputsDir: outputsDir,
-			TempDir:    tempVideoDir,
-		},
-	}
-
-	videoService := services.NewVideoService(cfg)
-	handlers = NewProcessorHandlers(videoService, cfg)
-
-	cleanup = func() {
-		os.RemoveAll(tempDir)
-	}
-
-	return
-}
-
 func TestNewProcessorHandlers_ShouldInitializeHandlersWithCorrectDependencies(t *testing.T) {
 	cfg := &config.ProcessorConfig{
 		Port: "8082",

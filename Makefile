@@ -21,8 +21,8 @@ endif
 GO_TEST_CMD = GOFLAGS='-buildvcs=false' go test -v
 NPM_INSTALL_CMD = cd web && npm install
 NPM_TEST_CMD = cd web && npm test
-NPM_LINT_CMD = cd web && npx eslint . --ext .js
-NPM_LINT_FIX_CMD = cd web && npx eslint . --ext .js --fix
+NPM_LINT_CMD = cd web && npm run lint:js
+NPM_LINT_FIX_CMD = cd web && npm run lint:js:fix
 LOGS_TAIL_CMD = logs --tail=50
 LOGS_FOLLOW_CMD = logs -f
 

@@ -30,8 +30,51 @@ NPM_LINT_FIX_CMD = cd web && npm run lint:js:fix
 LOGS_TAIL_CMD = logs --tail=50
 LOGS_FOLLOW_CMD = logs -f
 
-# Tools service commands
+# Performance Optimization Variables
+TOOLS_CONTAINER_NAME = videogrinder-tools-persistent
+TOOLS_IMAGE = videogrinder-processor-videogrinder-tools
+
+# Check if tools container is running
+TOOLS_RUNNING = $(shell docker ps -q -f name=$(TOOLS_CONTAINER_NAME) 2>/dev/null)
+
+# Check if we have native Go tools installed
+HAS_NATIVE_GO = $(shell command -v go 2> /dev/null)
+HAS_NATIVE_NODE = $(shell command -v node 2> /dev/null)
+
+# Performance-optimized command execution
+define EXEC_TOOLS_CMD
+	$(if $(TOOLS_RUNNING), \
+		docker exec $(TOOLS_CONTAINER_NAME) sh -c $(1), \
+		$(if $(HAS_NATIVE_GO)$(HAS_NATIVE_NODE), \
+			$(if $(findstring go,$(1)), \
+				$(if $(HAS_NATIVE_GO), \
+					$(1), \
+					$(COMPOSE_CMD) --profile tools run --rm videogrinder-tools sh -c $(1) \
+				), \
+				$(if $(findstring npm,$(1)), \
+					$(if $(HAS_NATIVE_NODE), \
+						$(1), \
+						$(COMPOSE_CMD) --profile tools run --rm videogrinder-tools sh -c $(1) \
+					), \
+					$(COMPOSE_CMD) --profile tools run --rm videogrinder-tools sh -c $(1) \
+				) \
+			), \
+			$(COMPOSE_CMD) --profile tools run --rm videogrinder-tools sh -c $(1) \
+		) \
+	)
+endef
+
+# Tools service commands (optimized)
 TOOLS_CMD = $(COMPOSE_CMD) --profile tools run --rm videogrinder-tools sh -c
+TOOLS_EXEC_CMD = $(call EXEC_TOOLS_CMD,"$(1)")
+
+# Batch command for multiple operations
+define BATCH_TOOLS_CMD
+	$(if $(TOOLS_RUNNING), \
+		docker exec $(TOOLS_CONTAINER_NAME) sh -c $(1), \
+		$(COMPOSE_CMD) --profile tools run --rm videogrinder-tools sh -c $(1) \
+	)
+endef
 
 %:
 	@:
@@ -57,15 +100,22 @@ help: ## Show this help message
 	@echo ''
 	@echo 'Development:'
 	@echo '  make shell        # Open shell in tools container'
+	@echo '  make tools-start  # Start persistent tools container (faster commands)'
+	@echo '  make tools-stop   # Stop persistent tools container'
+	@echo '  make tools-status # Show tools container status'
 	@echo '  make status       # Show services status'
 	@echo '  make ps           # Show running containers'
 	@echo ''
 	@echo 'Quality Checks:'
 	@echo '  make check        # Run all quality checks (format + lint + test)'
+	@echo '  make check-fast   # Run all quality checks (optimized single batch - fastest)'
 	@echo '  make check-full   # Run quality checks + health check (like CI pipeline)'
 	@echo '  make fmt          # Format code (Go + JS)'
+	@echo '  make fmt-fast     # Format code (optimized single batch - fastest)'
 	@echo '  make lint         # Lint code (Go + JS)'
+	@echo '  make lint-fast    # Lint code (optimized single batch - fastest)'
 	@echo '  make test         # Run all Go tests'
+	@echo '  make test-fast    # Run all tests (optimized single batch - fastest)'
 	@echo '  make test-js      # Run JS tests'
 	@echo '  make health       # Check app health'
 	@echo '  make health-deps  # Check service dependencies status'
@@ -114,39 +164,43 @@ run-processor: ## Run only processor service (usage: make run-processor [dev|pro
 
 test: ## Run all Go unit tests (API + processor)
 	@echo "🧪 Running all Go unit tests..."
-	$(TOOLS_CMD) "$(GO_TEST_CMD) ./..."
+	$(call BATCH_TOOLS_CMD,"$(GO_TEST_CMD) ./...")
 
 test-api: ## Run API service unit tests
 	@echo "🧪 Running API service unit tests..."
-	$(TOOLS_CMD) "$(GO_TEST_CMD) ./api/internal/..."
+	$(call BATCH_TOOLS_CMD,"$(GO_TEST_CMD) ./api/internal/...")
 
 test-processor: ## Run processor service unit tests
 	@echo "🧪 Running processor service unit tests..."
-	$(TOOLS_CMD) "$(GO_TEST_CMD) ./processor/internal/..."
+	$(call BATCH_TOOLS_CMD,"$(GO_TEST_CMD) ./processor/internal/...")
 
 test-services: ## Run services unit tests (API + processor)
 	@echo "🧪 Running services unit tests..."
-	$(TOOLS_CMD) "$(GO_TEST_CMD) ./internal/services/..."
+	$(call BATCH_TOOLS_CMD,"$(GO_TEST_CMD) ./internal/services/...")
 
 test-utils: ## Run utils unit tests
 	@echo "🧪 Running utils unit tests..."
-	$(TOOLS_CMD) "$(GO_TEST_CMD) ./internal/utils/..."
+	$(call BATCH_TOOLS_CMD,"$(GO_TEST_CMD) ./internal/utils/...")
 
 test-clients: ## Run clients unit tests
 	@echo "🧪 Running clients unit tests..."
-	$(TOOLS_CMD) "$(GO_TEST_CMD) ./internal/clients/..."
+	$(call BATCH_TOOLS_CMD,"$(GO_TEST_CMD) ./internal/clients/...")
 
 test-js: ## Run JavaScript unit tests
 	@echo "🧪 Running JavaScript unit tests..."
-	$(TOOLS_CMD) "$(NPM_TEST_CMD)"
+	$(call BATCH_TOOLS_CMD,"$(NPM_TEST_CMD)")
 
 test-js-watch: ## Run unit tests in watch mode
 	@echo "🧪 Running unit tests in watch mode..."
-	$(TOOLS_CMD) "$(NPM_TEST_WATCH_CMD)"
+	$(call BATCH_TOOLS_CMD,"$(NPM_TEST_WATCH_CMD)")
 
 test-js-coverage: ## Run unit tests with coverage report
 	@echo "🧪 Running unit tests with coverage..."
-	$(TOOLS_CMD) "$(NPM_TEST_COVERAGE_CMD)"
+	$(call BATCH_TOOLS_CMD,"$(NPM_TEST_COVERAGE_CMD)")
+
+test-fast: ## Run all tests optimized (Go + JS in single batch)
+	@echo "🚀 Running all tests (optimized batch)..."
+	$(call BATCH_TOOLS_CMD,"$(GO_TEST_CMD) ./... && $(NPM_TEST_CMD)")
 
 test-e2e: ## Run e2e tests (requires app running)
 	@echo "🎭 Running e2e tests..."
@@ -169,36 +223,43 @@ test-e2e-open-local: ## Open Cypress interactive mode locally (outside container
 	cd web && npm run test:e2e:dev
 
 lint: ## Check code quality (Go + JS)
-	@echo "🔍 Running Go linters..."
-	$(TOOLS_CMD) "GOFLAGS='-buildvcs=false' golangci-lint run"
-	@echo "🔍 Running JS linters..."
-	$(TOOLS_CMD) "$(NPM_LINT_CMD)"
+	@echo "🔍 Running Go + JS linters (optimized batch)..."
+	$(call BATCH_TOOLS_CMD,"GOFLAGS='-buildvcs=false' golangci-lint run && $(NPM_LINT_CMD)")
+
+lint-fast: ## Check code quality (Go + JS in single batch - fastest)
+	@echo "🚀 Running all linters (optimized)..."
+	$(call BATCH_TOOLS_CMD,"GOFLAGS='-buildvcs=false' golangci-lint run && $(NPM_LINT_CMD)")
 
 lint-js: ## Check JavaScript code quality
 	@echo "🔍 Running JS linters..."
-	$(TOOLS_CMD) "$(NPM_LINT_CMD)"
+	$(call BATCH_TOOLS_CMD,"$(NPM_LINT_CMD)")
 
 fmt: ## Format code (Go + JS)
-	@echo "🎨 Formatting Go code..."
-	$(TOOLS_CMD) "gofmt -s -w . && goimports -w ."
-	@echo "🎨 Formatting JS code..."
-	$(TOOLS_CMD) "$(NPM_LINT_FIX_CMD)"
+	@echo "🎨 Formatting all code (optimized batch)..."
+	$(call BATCH_TOOLS_CMD,"gofmt -s -w . && goimports -w . && $(NPM_LINT_FIX_CMD)")
+	@echo "✅ Code formatted"
+
+fmt-fast: ## Format code (Go + JS in single batch - fastest)
+	@echo "🚀 Formatting all code (optimized)..."
+	$(call BATCH_TOOLS_CMD,"gofmt -s -w . && goimports -w . && $(NPM_LINT_FIX_CMD)")
 	@echo "✅ Code formatted"
 
 fmt-check: ## Check code formatting without changing files
-	@echo "🎨 Checking Go code formatting..."
-	$(TOOLS_CMD) "test -z \"\$$(gofmt -l .)\" || (echo 'Go files not formatted:' && gofmt -l . && exit 1)"
-	$(TOOLS_CMD) "test -z \"\$$(goimports -l .)\" || (echo 'Go imports not formatted:' && goimports -l . && exit 1)"
-	@echo "🎨 Checking JS code formatting..."
-	$(TOOLS_CMD) "$(NPM_LINT_CMD)"
+	@echo "🎨 Checking code formatting (optimized batch)..."
+	$(call BATCH_TOOLS_CMD,"test -z \"\$$(gofmt -l .)\" || (echo 'Go files not formatted:' && gofmt -l . && exit 1) && test -z \"\$$(goimports -l .)\" || (echo 'Go imports not formatted:' && goimports -l . && exit 1) && $(NPM_LINT_CMD)")
 	@echo "✅ Code formatting is correct"
 
 fmt-js: ## Format JavaScript code
 	@echo "🎨 Formatting JS code..."
-	$(TOOLS_CMD) "$(NPM_LINT_FIX_CMD)"
+	$(call BATCH_TOOLS_CMD,"$(NPM_LINT_FIX_CMD)")
 	@echo "✅ JS code formatted"
 
 check: fmt-check lint test test-js ## Run all quality checks
+
+check-fast: ## Run all quality checks (optimized single batch - fastest)
+	@echo "🚀 Running all quality checks (optimized)..."
+	$(call BATCH_TOOLS_CMD,"test -z \"\$$(gofmt -l .)\" || (echo 'Go files not formatted:' && gofmt -l . && exit 1) && test -z \"\$$(goimports -l .)\" || (echo 'Go imports not formatted:' && goimports -l . && exit 1) && $(NPM_LINT_CMD) && GOFLAGS='-buildvcs=false' golangci-lint run && $(GO_TEST_CMD) ./... && $(NPM_TEST_CMD)")
+	@echo "✅ All quality checks passed!"
 
 check-full: check ## Run all quality checks + health check (like CI pipeline)
 	@echo "🏥 Running health check (Step 5 from CI pipeline)..."
@@ -333,6 +394,10 @@ ifeq ($(ENV),all)
 	$(COMPOSE_CMD) --profile prod down --volumes --remove-orphans
 	$(COMPOSE_CMD) --profile tools down --volumes --remove-orphans
 	$(COMPOSE_CMD) down --volumes --remove-orphans
+	@echo "🛑 Stopping persistent tools container if running..."
+	@if [ -n "$(TOOLS_RUNNING)" ]; then \
+		docker stop $(TOOLS_CONTAINER_NAME) && docker rm $(TOOLS_CONTAINER_NAME) || true; \
+	fi
 else
 	$(COMPOSE_CMD) --profile $(PROFILE) down --volumes --remove-orphans
 endif
@@ -354,6 +419,52 @@ docker-clean: ## Clean Docker resources
 shell: ## Open shell in tools container
 	@echo "🐚 Opening shell in tools container..."
 	$(COMPOSE_CMD) --profile tools run --rm videogrinder-tools sh
+
+tools-start: ## Start persistent tools container (faster commands)
+	@echo "🚀 Starting persistent tools container..."
+	@if [ -z "$(TOOLS_RUNNING)" ]; then \
+		echo "⚡ Starting $(TOOLS_CONTAINER_NAME) for faster development..."; \
+		docker run -d --name $(TOOLS_CONTAINER_NAME) \
+			-v "$(PWD):/workspace" \
+			-w /workspace \
+			$(TOOLS_IMAGE) tail -f /dev/null; \
+		echo "✅ Tools container started! Commands will now be much faster."; \
+	else \
+		echo "⚡ Tools container already running!"; \
+	fi
+
+tools-stop: ## Stop persistent tools container
+	@echo "🛑 Stopping persistent tools container..."
+	@if [ -n "$(TOOLS_RUNNING)" ]; then \
+		docker stop $(TOOLS_CONTAINER_NAME) && docker rm $(TOOLS_CONTAINER_NAME); \
+		echo "✅ Tools container stopped."; \
+	else \
+		echo "ℹ️  Tools container not running."; \
+	fi
+
+tools-status: ## Show tools container status
+	@echo "📊 Tools Container Status:"
+	@if [ -n "$(TOOLS_RUNNING)" ]; then \
+		echo "✅ Persistent tools container is RUNNING"; \
+		echo "   Container: $(TOOLS_CONTAINER_NAME)"; \
+		echo "   Commands will execute via docker exec (fast)"; \
+	else \
+		echo "❌ Persistent tools container is STOPPED"; \
+		echo "   Commands will use docker run (slower)"; \
+		echo "💡 Run 'make tools-start' for faster development"; \
+	fi
+	@echo ""
+	@echo "🛠️  Native Tools Available:"
+	@if [ -n "$(HAS_NATIVE_GO)" ]; then \
+		echo "   ✅ Go: $(shell go version 2>/dev/null || echo 'not available')"; \
+	else \
+		echo "   ❌ Go: not available"; \
+	fi
+	@if [ -n "$(HAS_NATIVE_NODE)" ]; then \
+		echo "   ✅ Node: $(shell node --version 2>/dev/null || echo 'not available')"; \
+	else \
+		echo "   ❌ Node: not available"; \
+	fi
 
 restart: ## Restart all services (usage: make restart [dev|prod])
 	@echo "🔄 Restarting all services in $(ENV) mode..."

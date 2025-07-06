@@ -71,14 +71,14 @@ describe('Utils Class', () => {
       const zipPath = 'frames_123456.zip'
       const link = Utils.createDownloadLink(zipPath)
 
-      expect(link).toContain('http://localhost:8081/api/v1/videos/frames_123456.zip/download')
+      expect(link).toContain('http://localhost:8081/api/v1/videos/frames_123456.zip/download?redirect=true')
       expect(link).toContain('class="download-btn"')
       expect(link).toContain('📥 Baixar ZIP')
     })
 
     test('should create valid HTML structure even with empty zip path', () => {
       const link = Utils.createDownloadLink('')
-      expect(link).toContain('http://localhost:8081/api/v1/videos//download')
+      expect(link).toContain('http://localhost:8081/api/v1/videos//download?redirect=true')
       expect(link).toContain('class="download-btn"')
     })
 
@@ -89,7 +89,7 @@ describe('Utils Class', () => {
       const zipPath = 'frames_dev.zip'
       const link = Utils.createDownloadLink(zipPath)
 
-      expect(link).toContain('http://localhost:8081/api/v1/videos/frames_dev.zip/download')
+      expect(link).toContain('http://localhost:8081/api/v1/videos/frames_dev.zip/download?redirect=true')
 
       global.window.location.port = '8081'
       global.window.location.origin = 'http://localhost:8081'

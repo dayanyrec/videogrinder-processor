@@ -72,3 +72,6 @@ class UIManager {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = UIManager
 }
+
+// Expose for testing
+window.UIManager = UIManager

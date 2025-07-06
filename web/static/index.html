@@ -15,7 +15,7 @@
 
         <div class="upload-form">
             <h3>📤 Upload do Vídeo</h3>
-            <form id="uploadForm" enctype="multipart/form-data">
+            <form id="uploadForm" enctype="multipart/form-data" onsubmit="return false;">
                 <input type="file" id="videoFile" name="video" accept=".mp4,.avi,.mov,.mkv,.wmv,.flv,.webm" required>
                 <br>
                 <button type="submit">Processar Vídeo</button>

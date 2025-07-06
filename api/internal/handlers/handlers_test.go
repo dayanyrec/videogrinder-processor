@@ -21,8 +21,9 @@ import (
 )
 
 type MockProcessorClient struct {
-	healthCheckFunc  func() error
-	processVideoFunc func(string, io.Reader) (*models.ProcessingResult, error)
+	healthCheckFunc        func() error
+	processVideoFunc       func(string, io.Reader) (*models.ProcessingResult, error)
+	processVideoFromS3Func func(string) (*models.ProcessingResult, error)
 }
 
 func (m *MockProcessorClient) HealthCheck() error {
@@ -40,6 +41,19 @@ func (m *MockProcessorClient) ProcessVideo(filename string, fileReader io.Reader
 		Success:    true,
 		Message:    "Processamento concluído! 5 frames extraídos.",
 		ZipPath:    "frames_test.zip",
+		FrameCount: 5,
+		Images:     []string{"frame_001.png", "frame_002.png"},
+	}, nil
+}
+
+func (m *MockProcessorClient) ProcessVideoFromS3(s3Key string) (*models.ProcessingResult, error) {
+	if m.processVideoFromS3Func != nil {
+		return m.processVideoFromS3Func(s3Key)
+	}
+	return &models.ProcessingResult{
+		Success:    true,
+		Message:    "Processamento S3 concluído! 5 frames extraídos.",
+		ZipPath:    "frames_s3_test.zip",
 		FrameCount: 5,
 		Images:     []string{"frame_001.png", "frame_002.png"},
 	}, nil

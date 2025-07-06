@@ -25,8 +25,6 @@ func New() *APIConfig {
 
 	s3Service, err := baseConfig.NewS3Service(awsConfig)
 	if err != nil {
-		// Log error but don't fail - fallback to filesystem
-		// This allows development without S3 if needed
 		s3Service = nil
 	}
 

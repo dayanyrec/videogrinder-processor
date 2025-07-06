@@ -15,6 +15,7 @@ import (
 
 type ProcessorClientInterface interface {
 	ProcessVideo(filename string, videoFile io.Reader) (*models.ProcessingResult, error)
+	ProcessVideoFromS3(s3Key string) (*models.ProcessingResult, error)
 	HealthCheck() error
 }
 
@@ -50,6 +51,43 @@ func (pc *ProcessorClient) ProcessVideo(filename string, videoFile io.Reader) (*
 	}
 
 	req, err := http.NewRequest("POST", pc.baseURL+"/process", &requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := pc.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Warning: Failed to close response body: %v", err)
+		}
+	}()
+
+	var result models.ProcessingResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (pc *ProcessorClient) ProcessVideoFromS3(s3Key string) (*models.ProcessingResult, error) {
+	var requestBody bytes.Buffer
+	writer := multipart.NewWriter(&requestBody)
+
+	if err := writer.WriteField("s3_key", s3Key); err != nil {
+		return nil, fmt.Errorf("failed to write s3_key field: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close writer: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", pc.baseURL+"/process-s3", &requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

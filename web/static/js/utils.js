@@ -12,7 +12,8 @@ class Utils {
 
   static createDownloadLink(zipPath) {
     const apiBaseURL = this.getApiBaseURL()
-    return `<a href="${apiBaseURL}/api/v1/videos/${zipPath}/download" class="download-btn">📥 Baixar ZIP</a>`
+    // Use redirect mode for direct download experience
+    return `<a href="${apiBaseURL}/api/v1/videos/${zipPath}/download?redirect=true" class="download-btn">📥 Baixar ZIP</a>`
   }
 
   static validateFile(file) {
@@ -32,3 +33,6 @@ class Utils {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = Utils
 }
+
+// Expose for testing
+window.Utils = Utils

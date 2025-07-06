@@ -93,17 +93,17 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 **Resultado**: Arquitetura multi-service totalmente funcional com 3 serviços independentes, comunicação HTTP, configurações isoladas, testes completos (39+ testes Go + 59 testes JS + 19 testes E2E) e documentação atualizada. O projeto está preparado para microserviços e segue todos os tech-mandates.
 
 ### 4.1 - Integração LocalStack AWS Básica
-- [ ] **Setup LocalStack Environment**
-  - [ ] Configurar LocalStack com S3, DynamoDB e SQS
-  - [ ] Criar docker-compose para LocalStack integrado ao ambiente de desenvolvimento
-  - [ ] Configurar credenciais AWS locais para desenvolvimento
-- [ ] **Migração de Armazenamento para S3**
-  - [ ] Implementar AWS S3 client para upload de vídeos
-  - [ ] Migrar diretório uploads/ para S3 buckets
-  - [ ] Migrar diretório outputs/ para S3 buckets
-  - [ ] Implementar presigned URLs para download de arquivos
+- [x] **Setup LocalStack Environment**
+  - [x] Configurar LocalStack com S3, DynamoDB e SQS
+  - [x] Criar docker-compose para LocalStack integrado ao ambiente de desenvolvimento
+  - [x] Configurar credenciais AWS locais para desenvolvimento
+- [x] **Migração de Armazenamento para S3**
+  - [x] Implementar AWS S3 client para upload de vídeos
+  - [x] Migrar diretório uploads/ para S3 buckets
+  - [x] Migrar diretório outputs/ para S3 buckets
+  - [x] Implementar presigned URLs para download de arquivos
 - [ ] **Persistência com DynamoDB**
-  - [ ] Criar schema da tabela `video_jobs` no DynamoDB
+  - [x] Criar schema da tabela `video_jobs` no DynamoDB
   - [ ] Implementar repository pattern para jobs de processamento
   - [ ] Salvar solicitação recebida na API no DynamoDB
   - [ ] Atualizar status do job quando Processor terminar processamento
@@ -111,10 +111,12 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
   - [ ] Implementar SQS para comunicação API → Processor
   - [ ] Refatorar API para enviar jobs via SQS em vez de HTTP direto
   - [ ] Implementar polling no frontend para atualizar status em tempo real
-- [ ] **Configuração e Ambiente**
-  - [ ] Adicionar variáveis de ambiente para AWS services
-  - [ ] Implementar fallback para desenvolvimento local vs LocalStack
-  - [ ] Atualizar Makefile com comandos para LocalStack
+- [x] **Configuração e Ambiente**
+  - [x] Adicionar variáveis de ambiente para AWS services
+  - [x] Implementar fallback para desenvolvimento local vs LocalStack
+  - [x] Atualizar Makefile com comandos para LocalStack
+
+**Resultado**: Infraestrutura LocalStack totalmente integrada com LocalStack 3.0, S3 client implementado com presigned URLs, schema DynamoDB e SQS configurados, fallback para desenvolvimento local funcional, health checks S3, comandos Makefile para LocalStack e integração completa com CI/CD. Sistema preparado para migração completa para AWS.
 
 ### 4.2 - Preparação dos repositórios
 
@@ -144,7 +146,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 ### 4.5 - Integração e otimização
 
 - [ ] Implementar processamento paralelo de múltiplos vídeos
-- [ ] Testes de integração end-to-end
+- [x] Testes de integração end-to-end
 - [ ] Implementar rollback strategies
 - [ ] Monitoramento e alertas básicos
 
@@ -177,14 +179,14 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 ---
 
 ### Parking lot - Entender se são necessárias
-- [ ] Adicionar variáveis de ambiente para configuração
+- [x] Adicionar variáveis de ambiente para configuração
 - [ ] Implementar timeouts para operações FFmpeg
 - [ ] Adicionar rate limiting básico
 - [ ] Documentar API com Swagger/OpenAPI automático
 
 ### 1.3 - Observabilidade e Monitoramento
-- [ ] Implementar logging estruturado em JSON
-- [ ] Melhorar tratamento de erros com contexto adequado
+- [x] Implementar logging estruturado em JSON
+- [x] Melhorar tratamento de erros com contexto adequado
 - [ ] Integrar CloudWatch Logs para desenvolvimento
 - [ ] Implementar métricas básicas de performance
 - [ ] Adicionar monitoramento de recursos (CPU, memória, I/O)
@@ -192,8 +194,8 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 ### 1.4 - Integração AWS Básica
 - [ ] Integrar AWS Secrets Manager para configurações sensíveis
 - [ ] Configurar AWS IAM roles e políticas básicas
-- [ ] Setup do LocalStack com S3 e DynamoDB (desenvolvimento local)
-- [ ] Migrar armazenamento local para S3 (LocalStack)
+- [x] Setup do LocalStack com S3 e DynamoDB (desenvolvimento local)
+- [x] Migrar armazenamento local para S3 (LocalStack)
 - [ ] Implementar criptografia básica com AWS KMS (LocalStack)
 
 ### 1.7 - Infraestrutura de Deploy na AWS (Futuro)
@@ -213,7 +215,7 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Implementar testes de segurança automatizados (SAST/DAST)
 
 ### 2.2 - API Design e Qualidade
-- [ ] Implementar versionamento de API (v1, v2, etc.)
+- [x] Implementar versionamento de API (v1, v2, etc.)
 - [ ] Adicionar middleware de CORS, rate limiting básico
 - [ ] Implementar graceful degradation para falhas
 
@@ -244,6 +246,25 @@ Este roadmap descreve os passos planejados para amadurecer o projeto VideoGrinde
 - [ ] Migrar de LocalStack para DynamoDB real na AWS
 
 ---
+
+---
+
+## :warning: Tech Debts
+
+### Funcionalidades Depreciadas
+- **Filesystem Storage (Legacy)**: O sistema de armazenamento local (filesystem) está marcado para depreciação
+  - **Razão**: Migração para S3 com presigned URLs oferece melhor escalabilidade e segurança
+  - **Impacto**: Funcionalidade de fallback para desenvolvimento local ainda funcional
+  - **Plano de Remoção**: Remover após implementação completa do LocalStack (Fase 4.1)
+  - **Arquivos Afetados**: 
+    - `api/internal/handlers/handlers.go` (métodos `*FromFilesystem`)
+    - `processor/internal/services/video.go` (métodos `*ToFilesystem`)
+    - Configurações de diretórios locais
+
+### Melhorias Técnicas Pendentes
+- **E2E Tests**: Atualizar testes para trabalhar com presigned URLs em vez de streaming direto
+- **Frontend**: Remover lógica de fallback para URLs locais após depreciação do filesystem
+- **Configuração**: Simplificar configuração removendo variáveis de ambiente relacionadas ao filesystem
 
 ---
 

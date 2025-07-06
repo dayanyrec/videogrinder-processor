@@ -116,7 +116,6 @@ func (vs *VideoService) createFramesZip(frames []string, timestamp string) (stri
 }
 
 func (vs *VideoService) createFramesZipToS3(frames []string, zipFilename string) (string, error) {
-	// Create ZIP in memory using bytes.Buffer
 	var zipBuffer bytes.Buffer
 	zipWriter := zip.NewWriter(&zipBuffer)
 
@@ -133,7 +132,6 @@ func (vs *VideoService) createFramesZipToS3(frames []string, zipFilename string)
 		return "", fmt.Errorf("erro ao finalizar ZIP: %w", err)
 	}
 
-	// Upload ZIP to S3
 	reader := bytes.NewReader(zipBuffer.Bytes())
 	if err := vs.config.S3Service.UploadFile(vs.config.S3Buckets.OutputsBucket, zipFilename, reader); err != nil {
 		return "", fmt.Errorf("erro ao fazer upload do ZIP para S3: %w", err)

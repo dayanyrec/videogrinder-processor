@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -50,7 +51,6 @@ func (ah *APIHandlers) GetAPIHealth(c *gin.Context) {
 	procCheck := health["checks"].(gin.H)["processor"].(gin.H)
 	s3Check := health["checks"].(gin.H)["s3"].(gin.H)
 
-	// S3 can be "disabled" and still be considered healthy for overall system health
 	s3Status := s3Check["status"].(string)
 	s3Healthy := s3Status == StatusHealthy || s3Status == "disabled"
 
@@ -195,7 +195,58 @@ func (ah *APIHandlers) CreateVideo(c *gin.Context) {
 		return
 	}
 
-	result, err := ah.processorClient.ProcessVideo(header.Filename, file)
+	if ah.config.IsS3Enabled() {
+		ah.processVideoWithS3(c, file, header.Filename)
+	} else {
+		ah.processVideoDirectly(c, file, header.Filename)
+	}
+}
+
+func (ah *APIHandlers) processVideoWithS3(c *gin.Context, file io.Reader, filename string) {
+	timestamp := time.Now().Format("20060102_150405")
+	s3Key := fmt.Sprintf("%s_%s", timestamp, filepath.Base(filename))
+
+	if err := ah.config.S3Service.UploadFile(ah.config.S3Buckets.UploadsBucket, s3Key, file); err != nil {
+		c.JSON(http.StatusInternalServerError, models.ProcessingResult{
+			Success: false,
+			Message: "Erro ao fazer upload do vídeo para S3: " + err.Error(),
+		})
+		return
+	}
+
+	log.Printf("Video uploaded to S3: s3://%s/%s", ah.config.S3Buckets.UploadsBucket, s3Key)
+
+	result, err := ah.processorClient.ProcessVideoFromS3(s3Key)
+	if err != nil {
+		if cleanupErr := ah.config.S3Service.DeleteFile(ah.config.S3Buckets.UploadsBucket, s3Key); cleanupErr != nil {
+			log.Printf("Warning: Failed to cleanup uploaded video from S3: %v", cleanupErr)
+		}
+		c.JSON(http.StatusInternalServerError, models.ProcessingResult{
+			Success: false,
+			Message: "Erro ao processar vídeo: " + err.Error(),
+		})
+		return
+	}
+
+	if result.Success {
+		// Generate presigned URL for download
+		if result.ZipPath != "" {
+			downloadURL, err := ah.config.S3Service.GeneratePresignedURL(ah.config.S3Buckets.OutputsBucket, result.ZipPath, time.Hour)
+			if err != nil {
+				log.Printf("Warning: Failed to generate presigned URL for %s: %v", result.ZipPath, err)
+				// Fallback to API endpoint
+				downloadURL = "/api/v1/videos/" + result.ZipPath + "/download"
+			}
+			result.DownloadURL = downloadURL
+		}
+		c.JSON(http.StatusCreated, result)
+	} else {
+		c.JSON(http.StatusUnprocessableEntity, result)
+	}
+}
+
+func (ah *APIHandlers) processVideoDirectly(c *gin.Context, file io.Reader, filename string) {
+	result, err := ah.processorClient.ProcessVideo(filename, file)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ProcessingResult{
 			Success: false,
@@ -238,11 +289,17 @@ func (ah *APIHandlers) getVideosFromS3(c *gin.Context) {
 			continue
 		}
 
+		downloadURL, err := ah.config.S3Service.GeneratePresignedURL(ah.config.S3Buckets.OutputsBucket, file, time.Hour)
+		if err != nil {
+			log.Printf("Warning: Failed to generate presigned URL for %s: %v", file, err)
+			downloadURL = "/api/v1/videos/" + filepath.Base(file) + "/download"
+		}
+
 		results = append(results, map[string]interface{}{
 			"filename":     filepath.Base(file),
 			"size":         *info.ContentLength,
 			"created_at":   info.LastModified.Format("2006-01-02 15:04:05"),
-			"download_url": "/api/v1/videos/" + filepath.Base(file) + "/download",
+			"download_url": downloadURL,
 		})
 	}
 
@@ -280,8 +337,15 @@ func (ah *APIHandlers) getVideosFromFilesystem(c *gin.Context) {
 	})
 }
 
+// GetVideoDownload handles video download requests with flexible response modes.
+// Supports both direct redirect to presigned URL and JSON response with URL.
+// Query parameter 'redirect=true' enables direct redirect mode for better UX.
 func (ah *APIHandlers) GetVideoDownload(c *gin.Context) {
 	filename := c.Param("filename")
+	if filename == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nome do arquivo é obrigatório"})
+		return
+	}
 
 	if ah.config.IsS3Enabled() {
 		ah.downloadVideoFromS3(c, filename)
@@ -302,25 +366,25 @@ func (ah *APIHandlers) downloadVideoFromS3(c *gin.Context, filename string) {
 		return
 	}
 
-	reader, err := ah.config.S3Service.DownloadFile(ah.config.S3Buckets.OutputsBucket, filename)
+	presignedURL, err := ah.config.S3Service.GeneratePresignedURL(ah.config.S3Buckets.OutputsBucket, filename, time.Hour)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao baixar arquivo do S3: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao gerar URL de download: " + err.Error()})
 		return
 	}
-	defer func() {
-		if err := reader.Close(); err != nil {
-			log.Printf("Warning: Failed to close S3 reader: %v", err)
-		}
-	}()
 
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Content-Disposition", "attachment; filename="+filename)
-	c.Header("Content-Type", "application/zip")
-
-	if _, err := io.Copy(c.Writer, reader); err != nil {
-		log.Printf("Error streaming file from S3: %v", err)
+	// Support both redirect and JSON response modes
+	if c.Query("redirect") == "true" {
+		// Direct redirect to S3 - better UX, faster download
+		c.Redirect(http.StatusFound, presignedURL)
+		return
 	}
+
+	// JSON response - allows frontend to handle URL as needed
+	c.JSON(http.StatusOK, gin.H{
+		"download_url": presignedURL,
+		"filename":     filename,
+		"expires_in":   3600,
+	})
 }
 
 func (ah *APIHandlers) downloadVideoFromFilesystem(c *gin.Context, filename string) {
@@ -331,11 +395,8 @@ func (ah *APIHandlers) downloadVideoFromFilesystem(c *gin.Context, filename stri
 		return
 	}
 
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
 	c.Header("Content-Type", "application/zip")
-
 	c.File(filePath)
 }
 

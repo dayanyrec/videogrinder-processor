@@ -12,11 +12,29 @@ class AppController {
 
   setupEventListeners() {
     const uploadForm = this.uiManager.getUploadForm()
-    uploadForm.addEventListener('submit', (e) => this.handleUpload(e))
+    if (!uploadForm) {
+      return
+    }
+
+    // Remove any existing listeners to prevent duplicates (if removeEventListener exists)
+    if (uploadForm.removeEventListener) {
+      uploadForm.removeEventListener('submit', this.handleUpload)
+    }
+
+    // Add the submit handler
+    uploadForm.addEventListener('submit', (e) => {
+      this.handleUpload(e)
+    })
   }
 
   async handleUpload(e) {
-    e.preventDefault()
+    // Defensive preventDefault
+    if (e && e.preventDefault) {
+      e.preventDefault()
+    }
+    if (e && e.stopPropagation) {
+      e.stopPropagation()
+    }
 
     const file = this.uiManager.getSelectedFile()
     const validation = Utils.validateFile(file)
@@ -35,7 +53,10 @@ class AppController {
       this.uiManager.hideLoading()
 
       if (data.success) {
-        const message = data.message + '<br><br>' + Utils.createDownloadLink(data.zip_path)
+        const downloadLink = data.download_url ?
+          `<a href="${data.download_url}" class="download-btn">📥 Baixar ZIP</a>` :
+          Utils.createDownloadLink(data.zip_path)
+        const message = data.message + '<br><br>' + downloadLink
         this.uiManager.showResult(message, 'success')
         await this.loadFilesList()
       } else {
@@ -64,3 +85,6 @@ class AppController {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = AppController
 }
+
+// Expose for testing
+window.AppController = AppController

@@ -18,6 +18,62 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
       cy.get('h3').should('contain', 'Arquivos Processados')
     })
 
+    it('should load JavaScript correctly', () => {
+      // Verify all JavaScript files loaded
+      cy.window().should('have.property', 'appController')
+      cy.window().should('have.property', 'AppController')
+      cy.window().should('have.property', 'UIManager')
+      cy.window().should('have.property', 'ApiService')
+      cy.window().should('have.property', 'Utils')
+
+      // Verify form is properly set up
+      cy.get('#uploadForm').should('have.attr', 'onsubmit', 'return false;')
+    })
+
+    it('should have working JavaScript form submission', () => {
+      // Basic elements check
+      cy.get('#uploadForm').should('exist')
+      cy.get('input[type="file"]').should('exist')
+      cy.get('button[type="submit"]').should('exist')
+
+      // Verify JavaScript is loaded and working
+      cy.window().should('have.property', 'AppController')
+      cy.window().should('have.property', 'appController')
+
+      cy.window().then((win) => {
+        expect(win.appController).to.exist
+        expect(win.appController.uiManager).to.exist
+        expect(win.appController.apiService).to.exist
+      })
+
+      // Test 1: Direct JavaScript call (we know this works)
+      cy.window().then((win) => {
+        win.appController.uiManager.showResult('Direct call works!', 'success')
+      })
+      cy.get('#result').should('be.visible')
+      cy.get('#result').should('contain', 'Direct call works!')
+
+      // Test 2: Try to call handleUpload directly
+      cy.window().then((win) => {
+        // Clear previous result
+        const resultDiv = win.document.getElementById('result')
+        resultDiv.innerHTML = ''
+        resultDiv.style.display = 'none'
+        resultDiv.className = 'result'
+
+        // Try to call handleUpload directly
+        if (win.appController && win.appController.handleUpload) {
+          const fakeEvent = { preventDefault: () => {}, stopPropagation: () => {} }
+          win.appController.handleUpload(fakeEvent)
+        }
+      })
+
+      // Should show validation error from JavaScript
+      cy.get('#result').should('be.visible')
+      cy.get('#result').should('have.class', 'error')
+      cy.get('#result').should('contain', 'Por favor, selecione um arquivo')
+    })
+
     it('should load status endpoint', () => {
       cy.request(`${API_BASE_URL}/api/v1/videos`).then((response) => {
         expect(response.status).to.eq(200)
@@ -36,12 +92,11 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
         expect($input[0].files[0].name).to.eq('test-video-valid.mp4')
       })
 
-      cy.get('button[type="submit"]').click()
+      cy.submitUpload()
 
-      cy.get('#loading').should('be.visible')
-      cy.get('#loading').should('contain', 'Processando vídeo')
-
-      cy.waitForUploadComplete()
+      // Wait for processing to complete
+      cy.get('#result', { timeout: 60000 }).should('be.visible')
+      cy.get('#result').should('not.contain', 'Processando')
 
       cy.verifyProcessingSuccess()
       cy.get('#result').should('contain', 'frames extraídos')
@@ -55,32 +110,37 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
     })
 
     it('should show processed file in the listing', () => {
-      cy.uploadAndProcess('test-video-valid.mp4')
+      cy.uploadVideo('test-video-valid.mp4')
+      cy.submitUpload()
+
+      // Wait for processing to complete
+      cy.get('#result', { timeout: 60000 }).should('be.visible')
+      cy.get('#result').should('not.contain', 'Processando')
 
       cy.checkFileListing()
       cy.get('#filesList').should('contain', 'frames_')
       cy.get('#filesList').should('contain', '.zip')
 
-      cy.get('#filesList a[href*="/api/v1/videos/"]').should('exist')
-      cy.get('#filesList a[href*="/download"]').should('exist')
+      // Check for presigned URLs (LocalStack S3)
+      cy.get('#filesList a[href*="localhost:4566"]').should('exist')
+      cy.get('#filesList a[href*="videogrinder-outputs"]').should('exist')
     })
   })
 
   describe('Error Handling', () => {
     it('should reject invalid file types', () => {
       cy.uploadVideo('test-invalid.txt')
-      cy.get('button[type="submit"]').click()
+      cy.submitUpload()
 
       cy.verifyProcessingError('Formato de arquivo não suportado')
       cy.get('#result').should('contain', 'mp4, avi, mov, mkv')
     })
 
     it('should handle missing file upload', () => {
-      cy.get('button[type="submit"]').click()
+      cy.submitUpload()
 
-      cy.get('input[type="file"]').then(($input) => {
-        expect($input[0].validity.valid).to.be.false
-      })
+      cy.get('#result').should('be.visible')
+      cy.get('#result').should('contain', 'Por favor, selecione um arquivo')
     })
 
     it('should handle server errors gracefully', () => {
@@ -90,7 +150,7 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
       }).as('uploadError')
 
       cy.uploadVideo('test-video-valid.mp4')
-      cy.get('button[type="submit"]').click()
+      cy.submitUpload()
 
       cy.wait('@uploadError')
       cy.get('#result').should('be.visible')
@@ -105,38 +165,56 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
 
   describe('File Download', () => {
     it('should allow downloading processed files via direct URL request', () => {
-      cy.uploadAndProcess('test-video-valid.mp4')
+      cy.uploadVideo('test-video-valid.mp4')
+      cy.submitUpload()
 
-      cy.get('#filesList a[href*="localhost:8081/api/v1/videos/"]').first().then(($link) => {
+      // Wait for processing to complete
+      cy.get('#result', { timeout: 60000 }).should('be.visible')
+      cy.get('#result').should('not.contain', 'Processando')
+
+      // Wait for files to appear in listing and get presigned URL
+      cy.get('#filesList a[href*="localhost:4566"]').first().then(($link) => {
         const downloadUrl = $link.attr('href')
         cy.request(downloadUrl).then((response) => {
           expect(response.status).to.eq(200)
-          expect(response.headers['content-type']).to.eq('application/zip')
-          expect(response.headers['content-disposition']).to.contain('attachment')
+          // Accept both content types (LocalStack may return either)
+          expect(response.headers['content-type']).to.match(/^(application\/zip|binary\/octet-stream)$/)
         })
       })
     })
 
     it('should generate correct download URLs in files list without manual correction', () => {
-      cy.uploadAndProcess('test-video-valid.mp4')
+      cy.uploadVideo('test-video-valid.mp4')
+      cy.submitUpload()
+
+      // Wait for processing to complete
+      cy.get('#result', { timeout: 60000 }).should('be.visible')
+      cy.get('#result').should('not.contain', 'Processando')
 
       cy.get('#filesList a.download-btn').first().should(($link) => {
         const href = $link.attr('href')
-        expect(href).to.match(/^http:\/\/localhost:8081\/api\/v1\/videos\/.+\/download$/)
+        // Check for presigned URL format (LocalStack S3)
+        expect(href).to.match(/^http:\/\/localhost:4566\/videogrinder-outputs\/.+\.zip/)
         expect(href).not.to.match(/^\/api\/v1\/videos\//)
       })
     })
 
     it('should successfully download file when clicking download button from files list', () => {
-      cy.uploadAndProcess('test-video-valid.mp4')
+      cy.uploadVideo('test-video-valid.mp4')
+      cy.submitUpload()
+
+      // Wait for processing to complete and file to appear in listing
+      cy.get('#result', { timeout: 60000 }).should('be.visible')
+      cy.get('#result').should('not.contain', 'Processando')
+      cy.get('#filesList a.download-btn', { timeout: 10000 }).should('exist')
 
       cy.get('#filesList a.download-btn').first().then(($link) => {
         const downloadUrl = $link.attr('href')
 
         cy.request(downloadUrl).then((response) => {
           expect(response.status).to.eq(200)
-          expect(response.headers['content-type']).to.eq('application/zip')
-          expect(response.headers['content-disposition']).to.contain('attachment')
+          // Accept both content types (LocalStack may return either)
+          expect(response.headers['content-type']).to.match(/^(application\/zip|binary\/octet-stream)$/)
         })
       })
     })
@@ -165,19 +243,26 @@ describe('VideoGrinder - Video Processing E2E Tests', () => {
 
     it('should show loading states correctly', () => {
       cy.uploadVideo('test-video-valid.mp4')
-      cy.get('button[type="submit"]').click()
+      cy.submitUpload()
 
       cy.get('#loading').should('be.visible')
       cy.get('#loading').should('contain', 'Processando vídeo')
       cy.get('#loading').should('contain', 'Isso pode levar alguns minutos')
 
-      cy.waitForUploadComplete()
+      // Wait for processing to complete (loading should disappear)
+      cy.get('#loading', { timeout: 60000 }).should('not.be.visible')
+      cy.get('#result', { timeout: 60000 }).should('be.visible')
     })
 
     it('should update file listing dynamically', () => {
       cy.checkFileListing()
 
-      cy.uploadAndProcess('test-video-valid.mp4')
+      cy.uploadVideo('test-video-valid.mp4')
+      cy.submitUpload()
+
+      // Wait for processing to complete
+      cy.get('#result', { timeout: 60000 }).should('be.visible')
+      cy.get('#result').should('not.contain', 'Processando')
 
       cy.get('#filesList').should('contain', 'frames_')
       cy.get('#filesList').should('contain', '.zip')

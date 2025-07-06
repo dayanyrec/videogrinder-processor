@@ -35,6 +35,7 @@ func main() {
 	})
 
 	r.POST("/process", processorHandlers.ProcessVideoUpload)
+	r.POST("/process-s3", processorHandlers.ProcessVideoFromS3)
 	r.GET("/health", processorHandlers.GetProcessorStatus)
 
 	fmt.Println("🔧 Processor service iniciado na porta", cfg.Port)

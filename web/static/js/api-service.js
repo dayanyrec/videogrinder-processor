@@ -36,3 +36,6 @@ class ApiService {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = ApiService
 }
+
+// Expose for testing
+window.ApiService = ApiService

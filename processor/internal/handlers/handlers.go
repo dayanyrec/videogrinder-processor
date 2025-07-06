@@ -115,7 +115,6 @@ func (ph *ProcessorHandlers) GetProcessorStatus(c *gin.Context) {
 	ffmpegCheck := health["checks"].(gin.H)["ffmpeg"].(gin.H)
 	s3Check := health["checks"].(gin.H)["s3"].(gin.H)
 
-	// S3 can be "disabled" and still be considered healthy for overall system health
 	s3Status := s3Check["status"].(string)
 	s3Healthy := s3Status == StatusHealthy || s3Status == "disabled"
 
@@ -243,4 +242,83 @@ func IsValidVideoFile(filename string) bool {
 		}
 	}
 	return false
+}
+
+func (ph *ProcessorHandlers) ProcessVideoFromS3(c *gin.Context) {
+	s3Key := c.PostForm("s3_key")
+	if s3Key == "" {
+		c.JSON(http.StatusBadRequest, models.ProcessingResult{
+			Success: false,
+			Message: "S3 key é obrigatório",
+		})
+		return
+	}
+
+	if !ph.config.IsS3Enabled() {
+		c.JSON(http.StatusServiceUnavailable, models.ProcessingResult{
+			Success: false,
+			Message: "S3 não está habilitado neste serviço",
+		})
+		return
+	}
+
+	timestamp := time.Now().Format("20060102_150405")
+	tempVideoPath := filepath.Join(ph.config.TempDir, fmt.Sprintf("temp_%s_%s", timestamp, filepath.Base(s3Key)))
+
+	if err := ph.downloadVideoFromS3(s3Key, tempVideoPath); err != nil {
+		c.JSON(http.StatusInternalServerError, models.ProcessingResult{
+			Success: false,
+			Message: "Erro ao baixar vídeo do S3: " + err.Error(),
+		})
+		return
+	}
+
+	defer func() {
+		if err := os.Remove(tempVideoPath); err != nil {
+			log.Printf("Warning: Failed to cleanup temp video file: %v", err)
+		}
+	}()
+
+	result := ph.videoService.ProcessVideo(tempVideoPath, timestamp)
+
+	if result.Success {
+		if err := ph.config.S3Service.DeleteFile(ph.config.S3Buckets.UploadsBucket, s3Key); err != nil {
+			log.Printf("Warning: Failed to cleanup uploaded video from S3: %v", err)
+		}
+	}
+
+	if result.Success {
+		c.JSON(http.StatusOK, result)
+	} else {
+		c.JSON(http.StatusUnprocessableEntity, result)
+	}
+}
+
+func (ph *ProcessorHandlers) downloadVideoFromS3(s3Key, localPath string) error {
+	reader, err := ph.config.S3Service.DownloadFile(ph.config.S3Buckets.UploadsBucket, s3Key)
+	if err != nil {
+		return fmt.Errorf("failed to download from S3: %w", err)
+	}
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Printf("Warning: Failed to close S3 reader: %v", err)
+		}
+	}()
+
+	file, err := os.Create(filepath.Clean(localPath))
+	if err != nil {
+		return fmt.Errorf("failed to create local file: %w", err)
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("Warning: Failed to close local file: %v", err)
+		}
+	}()
+
+	if _, err := io.Copy(file, reader); err != nil {
+		return fmt.Errorf("failed to copy S3 content to local file: %w", err)
+	}
+
+	log.Printf("Downloaded video from S3: s3://%s/%s -> %s", ph.config.S3Buckets.UploadsBucket, s3Key, localPath)
+	return nil
 }

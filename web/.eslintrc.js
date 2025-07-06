@@ -62,7 +62,7 @@ module.exports = {
       }
     },
     {
-      files: ['*.config.js', '.eslintrc.js'],
+      files: ['.eslintrc.js'],
       env: {
         node: true
       },

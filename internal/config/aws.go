@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const DefaultLocalStackEndpoint = "http://localhost:4566"
+
 type AWSConfig struct {
 	Region           string
 	AccessKeyID      string
@@ -124,8 +126,7 @@ func (c *AWSConfig) GetExternalEndpoint() string {
 		return c.ExternalURL
 	}
 	if c.IsLocalStack() {
-		// Default LocalStack external URL for browser access
-		return "http://localhost:4566"
+		return DefaultLocalStackEndpoint
 	}
 	return c.GetS3Endpoint()
 }

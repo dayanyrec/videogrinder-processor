@@ -28,8 +28,8 @@ func TestNewAWSConfig(t *testing.T) {
 
 func TestAWSConfigWithEnvironmentVariables(t *testing.T) {
 	os.Setenv("AWS_REGION", "us-west-2")
-	os.Setenv("AWS_ENDPOINT_URL", "http://localhost:4566")
-	os.Setenv("AWS_EXTERNAL_URL", "http://localhost:4566")
+	os.Setenv("AWS_ENDPOINT_URL", DefaultLocalStackEndpoint)
+	os.Setenv("AWS_EXTERNAL_URL", DefaultLocalStackEndpoint)
 	os.Setenv("AWS_PRESIGNED_TIMEOUT", "30m")
 	os.Setenv("S3_BUCKET_UPLOADS", "test-uploads")
 	defer func() {
@@ -46,12 +46,12 @@ func TestAWSConfigWithEnvironmentVariables(t *testing.T) {
 		t.Errorf("Expected region us-west-2, got %s", config.Region)
 	}
 
-	if config.EndpointURL != "http://localhost:4566" {
-		t.Errorf("Expected endpoint http://localhost:4566, got %s", config.EndpointURL)
+	if config.EndpointURL != DefaultLocalStackEndpoint {
+		t.Errorf("Expected endpoint %s, got %s", DefaultLocalStackEndpoint, config.EndpointURL)
 	}
 
-	if config.ExternalURL != "http://localhost:4566" {
-		t.Errorf("Expected external URL http://localhost:4566, got %s", config.ExternalURL)
+	if config.ExternalURL != DefaultLocalStackEndpoint {
+		t.Errorf("Expected external URL %s, got %s", DefaultLocalStackEndpoint, config.ExternalURL)
 	}
 
 	if config.PresignedTimeout != 30*time.Minute {
@@ -69,7 +69,7 @@ func TestIsLocalStack(t *testing.T) {
 		t.Error("Expected IsLocalStack to return false when EndpointURL is empty")
 	}
 
-	config.EndpointURL = "http://localhost:4566"
+	config.EndpointURL = DefaultLocalStackEndpoint
 	if !config.IsLocalStack() {
 		t.Error("Expected IsLocalStack to return true when EndpointURL is set")
 	}
@@ -99,7 +99,7 @@ func TestGetExternalEndpoint(t *testing.T) {
 				EndpointURL: "http://localstack:4566",
 				Region:      "us-east-1",
 			},
-			expected:    "http://localhost:4566",
+			expected:    DefaultLocalStackEndpoint,
 			description: "should return default LocalStack URL when external URL not set",
 		},
 		{
@@ -140,8 +140,8 @@ func TestValidateURL(t *testing.T) {
 		},
 		{
 			name:      "valid HTTP URL for LocalStack",
-			config:    &AWSConfig{EndpointURL: "http://localhost:4566"},
-			url:       "http://localhost:4566/bucket/key",
+			config:    &AWSConfig{EndpointURL: DefaultLocalStackEndpoint},
+			url:       DefaultLocalStackEndpoint + "/bucket/key",
 			wantError: false,
 		},
 		{
@@ -234,9 +234,9 @@ func TestGetEndpoints(t *testing.T) {
 		t.Errorf("Expected S3 endpoint %s, got %s", expectedS3, config.GetS3Endpoint())
 	}
 
-	config.EndpointURL = "http://localhost:4566"
-	if config.GetS3Endpoint() != "http://localhost:4566" {
-		t.Errorf("Expected LocalStack endpoint http://localhost:4566, got %s", config.GetS3Endpoint())
+	config.EndpointURL = DefaultLocalStackEndpoint
+	if config.GetS3Endpoint() != DefaultLocalStackEndpoint {
+		t.Errorf("Expected LocalStack endpoint %s, got %s", DefaultLocalStackEndpoint, config.GetS3Endpoint())
 	}
 }
 
@@ -251,9 +251,9 @@ func TestGetDynamoDBEndpoint(t *testing.T) {
 		t.Errorf("Expected DynamoDB endpoint %s, got %s", expectedDynamoDB, config.GetDynamoDBEndpoint())
 	}
 
-	config.EndpointURL = "http://localhost:4566"
-	if config.GetDynamoDBEndpoint() != "http://localhost:4566" {
-		t.Errorf("Expected LocalStack endpoint http://localhost:4566, got %s", config.GetDynamoDBEndpoint())
+	config.EndpointURL = DefaultLocalStackEndpoint
+	if config.GetDynamoDBEndpoint() != DefaultLocalStackEndpoint {
+		t.Errorf("Expected LocalStack endpoint %s, got %s", DefaultLocalStackEndpoint, config.GetDynamoDBEndpoint())
 	}
 }
 
@@ -268,8 +268,8 @@ func TestGetSQSEndpoint(t *testing.T) {
 		t.Errorf("Expected SQS endpoint %s, got %s", expectedSQS, config.GetSQSEndpoint())
 	}
 
-	config.EndpointURL = "http://localhost:4566"
-	if config.GetSQSEndpoint() != "http://localhost:4566" {
-		t.Errorf("Expected LocalStack endpoint http://localhost:4566, got %s", config.GetSQSEndpoint())
+	config.EndpointURL = DefaultLocalStackEndpoint
+	if config.GetSQSEndpoint() != DefaultLocalStackEndpoint {
+		t.Errorf("Expected LocalStack endpoint %s, got %s", DefaultLocalStackEndpoint, config.GetSQSEndpoint())
 	}
 }

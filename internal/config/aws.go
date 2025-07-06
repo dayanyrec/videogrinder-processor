@@ -56,7 +56,7 @@ func NewAWSConfig() *AWSConfig {
 	}
 }
 
-// parseDuration safely parses duration with fallback
+// parseDuration safely parses duration with fallback.
 func parseDuration(s string) time.Duration {
 	d, err := time.ParseDuration(s)
 	if err != nil {
@@ -118,7 +118,7 @@ func (c *AWSConfig) CheckHealth() error {
 	return nil
 }
 
-// GetExternalEndpoint returns browser-accessible endpoint
+// GetExternalEndpoint returns browser-accessible endpoint.
 func (c *AWSConfig) GetExternalEndpoint() string {
 	if c.ExternalURL != "" {
 		return c.ExternalURL
@@ -130,7 +130,7 @@ func (c *AWSConfig) GetExternalEndpoint() string {
 	return c.GetS3Endpoint()
 }
 
-// ValidateURL validates URLs following Security First mandate
+// ValidateURL validates URLs following Security First mandate.
 func (c *AWSConfig) ValidateURL(rawURL string) error {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
